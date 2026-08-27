@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider      = "postgresql"
+  url           = env("DATABASE_URL")
+  relationMode  = "prisma"
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  orgId     String
+  title     String
+  logoUrl   String?  @db.Text
+  password   String       @default("")
+  yearFolders YearFolder[]
+  accesses   FolderAccess[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model YearFolder {
+  id        String   @id @default(uuid())
+  title     String
+  folderId  String
+  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  months    MonthFolder[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([folderId])
+}
+
+model MonthFolder {
+  id           String      @id @default(uuid())
+  title        String
+  yearFolderId String
+  yearFolder   YearFolder  @relation(fields: [yearFolderId], references: [id], onDelete: Cascade)
+  days         DayFolder[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  @@index([yearFolderId])
+}
+
+model DayFolder {
+  id            String      @id @default(uuid())
+  title         String
+  monthFolderId String
+  monthFolder   MonthFolder @relation(fields: [monthFolderId], references: [id], onDelete: Cascade)
+  boards        Board[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  @@index([monthFolderId])
+}
+
+model FolderAccess {
+  id        String   @id @default(uuid())
+  folderId  String
+  userId    String
+  folder    Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([folderId, userId])
+  @@index([folderId])
+}
+model Board {
+  id            String    @id @default(uuid())
+  orgId         String
+  dayFolderId   String
+  dayFolder     DayFolder @relation(fields: [dayFolderId], references: [id], onDelete: Cascade)
+  title         String
+  imageId       String
+  imageThumbUrl String    @db.Text
+  imageFullUrl  String    @db.Text
+  imageUserName String    @db.Text
+  imageLinkHtml String    @db.Text
+
+  lists         List[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([dayFolderId])
+}
+
+model List {
+  id        String    @id  @default(uuid())
+  title     String
+  order     Int
+
+  boardId   String
+  board     Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  cards     Card[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([boardId])
+}
+
+
+model Card {
+  id          String    @id @default(uuid())
+  title       String
+  order       Int
+  description String?   @db.Text
+
+  listId      String
+  list        List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([listId])
+}
+
+enum ACTION {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum ENTITY_TYPE {
+  FOLDER
+  BOARD
+  LIST
+  CARD
+}
+
+model AuditLog {
+  id          String      @id @default(uuid())
+  orgId       String
+  action      ACTION
+  entityId    String
+  entityType  ENTITY_TYPE
+  entityTitle String
+  userId      String
+  userImage   String      @db.Text
+  userName    String      @db.Text
+
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
