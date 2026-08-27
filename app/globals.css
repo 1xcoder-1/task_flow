@@ -80,3 +80,11 @@ body,
     @apply bg-background text-foreground;
   }
 }
+
+/* Hide Liveblocks Watermark Badge */
+a[href^="https://liveblocks.io"] {
+  display: none !important;
+}
+[class*="lb-badge"], [class*="lb-watermark"] {
+  display: none !important;
+}

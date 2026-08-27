@@ -108,9 +108,18 @@ model Card {
   title       String
   order       Int
   description String?   @db.Text
+  priority    String?   // "High", "Medium", "Low"
+  progress    Int?      @default(0)
+  dueDate     DateTime?
+  isActive    Boolean   @default(false)
 
   listId      String
   list        List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  comments    Comment[]
+  attachments Attachment[]
+  assignments CardAssignment[]
+  subtasks    Subtask[]
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -118,10 +127,64 @@ model Card {
   @@index([listId])
 }
 
+model Subtask {
+  id          String    @id @default(uuid())
+  title       String
+  isCompleted Boolean   @default(false)
+  
+  cardId      String
+  card        Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([cardId])
+}
+
 enum ACTION {
   CREATE
   UPDATE
   DELETE
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  text      String   @db.Text
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId    String
+  userImage String   @db.Text
+  userName  String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cardId])
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  url       String   @db.Text
+  type      String   // "image", "link"
+  title     String?
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cardId])
+}
+
+model CardAssignment {
+  id        String   @id @default(uuid())
+  cardId    String
+  userId    String
+  userImage String   @db.Text
+  userName  String   @db.Text
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([cardId, userId])
+  @@index([cardId])
 }
 
 enum ENTITY_TYPE {

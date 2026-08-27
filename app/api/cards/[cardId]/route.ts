@@ -31,6 +31,16 @@ export async function GET(
             title: true,
           },
         },
+        comments: {
+          orderBy: { createdAt: "desc" }
+        },
+        attachments: {
+          orderBy: { createdAt: "desc" }
+        },
+        assignments: true,
+        subtasks: {
+          orderBy: { createdAt: "asc" }
+        },
       },
     });
 

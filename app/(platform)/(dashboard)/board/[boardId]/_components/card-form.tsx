@@ -76,8 +76,8 @@ export const CardForm = forwardRef<HTMLTextAreaElement, CardFormProps>(
             placeholder="Enter a title for this card..."
           />
 
-          <input hidden id="listId" name="listId" value={listId} />
-          <input hidden id="boardId" name="boardId" value={params.boardId} />
+          <input hidden id="listId" name="listId" defaultValue={listId} />
+          <input hidden id="boardId" name="boardId" defaultValue={params.boardId as string} />
 
           <div className="flex items-center gap-x-1">
             <FormSubmit>Add card</FormSubmit>

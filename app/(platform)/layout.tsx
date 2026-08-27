@@ -9,7 +9,7 @@ const PlatformLayout = ({ children }: PropsWithChildren) => {
   return (
     <ClerkProvider
       appearance={{
-        layout: {
+        options: {
           logoImageUrl: "/logo.svg",
         },
         variables: {

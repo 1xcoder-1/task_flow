@@ -20,5 +20,8 @@ export const UpdateCard = z.object({
         message: "Title is too short.",
       }),
   ),
+  isActive: z.optional(z.boolean()),
+  priority: z.optional(z.string()),
+  dueDate: z.optional(z.coerce.date().nullable()),
   id: z.string(),
 });

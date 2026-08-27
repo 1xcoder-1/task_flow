@@ -1,16 +1,18 @@
-"use client";
+import fs from 'fs';
+import path from 'path';
 
-import { useState, useEffect, useRef } from "react";
+const newCode = \"use client";
+
+import { useState, useRef, ElementRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useCardModal } from "@/hooks/use-card-modal";
 import type { CardWithList } from "@/types";
 import { fetcher } from "@/lib/fetcher";
-import { Pencil, Calendar, Paperclip, CheckCircle2, Circle, Plus, Send, MessageSquare, Trash2, LinkIcon, ImageIcon, X, Check } from "lucide-react";
+import { Pencil, Calendar, Paperclip, CheckCircle2, Circle, Plus, Send, MessageSquare, Trash2, LinkIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { useOrganization } from "@clerk/nextjs";
 import { useAction } from "@/hooks/use-action";
 import { updateCard } from "@/actions/update-card";
 import { deleteCard } from "@/actions/delete-card";
@@ -21,8 +23,6 @@ import { createComment } from "@/actions/create-comment";
 import { deleteComment } from "@/actions/delete-comment";
 import { createAttachment } from "@/actions/create-attachment";
 import { deleteAttachment } from "@/actions/delete-attachment";
-import { createAssignment } from "@/actions/create-assignment";
-import { deleteAssignment } from "@/actions/delete-assignment";
 import { toast } from "sonner";
 import { useParams } from "next/navigation";
 
@@ -36,31 +36,20 @@ export const CardModal = () => {
 
   const { data: cardData } = useQuery<CardWithList>({
     queryKey: ["card", id],
-    queryFn: () => fetcher(`/api/cards/${id}`),
+    queryFn: () => fetcher(\\\/api/cards/\\\\),
     enabled: !!id,
   });
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("Low");
   const [subtaskTitle, setSubtaskTitle] = useState("");
   const [commentText, setCommentText] = useState("");
 
-  const [isAddingLink, setIsAddingLink] = useState(false);
-  const [isAssigneeOpen, setIsAssigneeOpen] = useState(false);
-  const [linkUrl, setLinkUrl] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   // Sync state when data loads
-  useEffect(() => {
-    if (cardData) {
-      setTitle(cardData.title || "");
-      setDescription(cardData.description || "");
-      setPriority(cardData.priority || "Low");
-    }
-  }, [cardData]);
-
-  const { memberships } = useOrganization({ memberships: { pageSize: 10 } });
+  if (cardData && !title && cardData.title !== title) {
+    setTitle(cardData.title);
+    setDescription(cardData.description || "");
+  }
 
   // --- Actions ---
   const { execute: executeUpdateCard } = useAction(updateCard, {
@@ -137,16 +126,6 @@ export const CardModal = () => {
     onError: (error) => toast.error(error),
   });
 
-  const { execute: executeCreateAssignment } = useAction(createAssignment, {
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["card", id] }),
-    onError: (error) => toast.error(error),
-  });
-
-  const { execute: executeDeleteAssignment } = useAction(deleteAssignment, {
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["card", id] }),
-    onError: (error) => toast.error(error),
-  });
-
   // --- Handlers ---
   const onTitleBlur = () => {
     if (title === cardData?.title) return;
@@ -160,9 +139,7 @@ export const CardModal = () => {
 
   const onPriorityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     if (!cardData) return;
-    const val = e.target.value;
-    setPriority(val);
-    executeUpdateCard({ id: cardData.id, boardId: params.boardId as string, priority: val });
+    executeUpdateCard({ id: cardData.id, boardId: params.boardId as string, priority: e.target.value });
   };
 
   const onAddSubtask = () => {
@@ -187,28 +164,10 @@ export const CardModal = () => {
     executeDeleteComment({ id: commentId, boardId: params.boardId as string });
   };
 
-  const onSubmitLink = () => {
-    if (!linkUrl || !cardData) return;
-    const url = linkUrl.startsWith('http') ? linkUrl : `https://${linkUrl}`;
-    executeCreateAttachment({ url, type: "link", title: url.split('/').pop() || "Link", cardId: cardData.id, boardId: params.boardId as string });
-    setLinkUrl("");
-    setIsAddingLink(false);
-  };
-
-  const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !cardData) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      executeCreateAttachment({ url: base64, type: "image", title: file.name, cardId: cardData.id, boardId: params.boardId as string });
-    };
-    reader.readAsDataURL(file);
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+  const onAddAttachment = () => {
+    const url = prompt("Enter attachment URL (e.g., https://example.com/file.pdf):");
+    if (!url || !cardData) return;
+    executeCreateAttachment({ url, type: "link", title: url.split('/').pop() || "Attachment", cardId: cardData.id, boardId: params.boardId as string });
   };
 
   const onDeleteAttachment = (attachmentId: string) => {
@@ -219,22 +178,6 @@ export const CardModal = () => {
     if (!cardData) return;
     if (confirm("Are you sure you want to delete this card?")) {
       executeDeleteCard({ id: cardData.id, boardId: params.boardId as string });
-    }
-  };
-
-  const onToggleAssignee = (userId: string, userName: string, userImage: string) => {
-    if (!cardData) return;
-    const existing = cardData.assignments?.find(a => a.userId === userId);
-    if (existing) {
-      executeDeleteAssignment({ id: existing.id, boardId: params.boardId as string });
-    } else {
-      executeCreateAssignment({
-        userId,
-        userName,
-        userImage,
-        cardId: cardData.id,
-        boardId: params.boardId as string,
-      });
     }
   };
 
@@ -252,19 +195,19 @@ export const CardModal = () => {
 
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
           {/* Header Section */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={onTitleBlur}
-              className="text-2xl font-bold text-gray-900 leading-tight w-full focus:outline-none focus:ring-1 focus:ring-gray-300 border border-gray-200 rounded-lg px-3 py-2 bg-transparent"
+              className="text-2xl font-bold text-gray-900 leading-tight w-full focus:outline-none focus:ring-1 focus:ring-gray-300 rounded px-1 -ml-1 bg-transparent"
               placeholder="Card Title"
             />
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               onBlur={onDescriptionBlur}
-              className="text-sm text-gray-700 w-full resize-none focus:outline-none focus:ring-1 focus:ring-gray-300 border border-gray-200 rounded-lg px-3 py-2 bg-transparent min-h-[80px]"
+              className="text-sm text-gray-500 w-full resize-none focus:outline-none focus:ring-1 focus:ring-gray-300 rounded px-1 -ml-1 bg-transparent min-h-[60px]"
               placeholder="Add a more detailed description..."
             />
           </div>
@@ -273,52 +216,34 @@ export const CardModal = () => {
           <div className="grid grid-cols-[100px_1fr] gap-y-4 text-sm items-center">
             <div className="text-gray-500">Status</div>
             <div>
-              <span className="inline-flex items-center gap-x-1.5 px-2.5 py-1 rounded-md border border-gray-200 text-gray-700 bg-white shadow-sm text-xs font-medium">
-                <span className="text-sm">
-                  {(!cardData?.list.title) ? "📋" 
-                    : cardData.list.title.toLowerCase().includes("done") || cardData.list.title.toLowerCase().includes("complete") ? "✅"
-                    : cardData.list.title.toLowerCase().includes("progress") || cardData.list.title.toLowerCase().includes("doing") ? "⏳"
-                    : cardData.list.title.toLowerCase().includes("review") ? "👀"
-                    : "📋"}
-                </span>
-                {cardData?.list.title || "Loading..."}
+              <span className="inline-flex items-center px-2.5 py-1 rounded-md border border-gray-200 text-gray-700 bg-white shadow-sm text-xs font-medium">
+                {cardData?.list.title || "Loading..."} <span className="ml-2 text-gray-400">v</span>
               </span>
             </div>
 
             <div className="text-gray-500">Priority</div>
             <div>
               <div className="relative inline-block">
+                <span className={\bsolute left-2.5 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full \\} />
                 <select 
-                  value={priority}
+                  value={cardData?.priority || "Low"}
                   onChange={onPriorityChange}
-                  className="appearance-none bg-gray-50 border border-gray-200 text-gray-800 text-sm font-medium rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 pl-3 pr-8 py-1.5 shadow-sm cursor-pointer"
+                  className="appearance-none bg-gray-50 border border-gray-100 text-gray-700 text-xs font-medium rounded-full focus:outline-none focus:ring-1 focus:ring-gray-300 pl-6 pr-8 py-1 shadow-sm cursor-pointer"
                 >
-                  <option value="Low">⚪ Low</option>
-                  <option value="Medium">🟠 Medium</option>
-                  <option value="High">🔴 High</option>
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                  <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                  <svg className="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                 </div>
               </div>
             </div>
 
             <div className="text-gray-500">Due date</div>
             <div className="flex items-center text-gray-700 font-medium text-sm gap-x-2">
-              <input 
-                type="date"
-                value={cardData?.dueDate ? new Date(cardData.dueDate).toISOString().split('T')[0] : ""}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (!cardData) return;
-                  executeUpdateCard({ 
-                    id: cardData.id, 
-                    boardId: params.boardId as string, 
-                    dueDate: val ? new Date(val) : null 
-                  });
-                }}
-                className="text-sm bg-transparent border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300 w-[140px] text-gray-700"
-              />
+              <Calendar className="h-4 w-4 text-gray-400" />
+              {cardData?.dueDate ? new Date(cardData.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "None"}
             </div>
 
             <div className="text-gray-500">Assignees</div>
@@ -329,46 +254,17 @@ export const CardModal = () => {
                     <AvatarImage src={assignee.userImage} />
                     <AvatarFallback>{assignee.userName.charAt(0)}</AvatarFallback>
                   </Avatar>
-                )) : null}
+                )) : <span className="text-gray-500 text-sm">None</span>}
               </div>
-              
-              <Popover open={isAssigneeOpen} onOpenChange={setIsAssigneeOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="icon" className="h-6 w-6 rounded-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50">
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-60 p-2" align="start">
-                  <div className="text-xs font-semibold text-gray-600 mb-2 px-2">Assign members</div>
-                  <div className="space-y-1">
-                    {memberships?.data?.filter(mem => mem.publicUserData).map((mem) => {
-                      const isAssigned = cardData?.assignments?.some(a => a.userId === mem.publicUserData!.userId);
-                      return (
-                        <div 
-                          key={mem.publicUserData!.userId}
-                          onClick={() => {
-                            onToggleAssignee(mem.publicUserData!.userId!, mem.publicUserData!.firstName || "User", mem.publicUserData!.imageUrl || "");
-                            setIsAssigneeOpen(false);
-                          }}
-                          className="flex items-center justify-between p-2 hover:bg-gray-100 rounded-md cursor-pointer transition"
-                        >
-                          <div className="flex items-center gap-x-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={mem.publicUserData!.imageUrl} />
-                              <AvatarFallback>{mem.publicUserData!.firstName?.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm font-medium text-gray-700">{mem.publicUserData!.firstName} {mem.publicUserData!.lastName}</span>
-                          </div>
-                          {isAssigned && <Check className="h-4 w-4 text-sky-600" />}
-                        </div>
-                      );
-                    })}
-                    {(!memberships?.data || memberships.data.length === 0) && (
-                      <div className="text-xs text-gray-500 text-center py-2">No members found.</div>
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <span className="text-gray-600 text-sm">
+                {cardData?.assignments?.map(a => a.userName).join(", ")}
+              </span>
+            </div>
+
+            <div className="text-gray-500">Progress</div>
+            <div className="flex items-center gap-x-3 w-full">
+              <Progress value={cardData?.progress || 0} className="h-1.5 flex-1 bg-gray-100" />
+              <span className="text-xs text-gray-500 font-medium">{cardData?.progress || 0}%</span>
             </div>
           </div>
 
@@ -393,8 +289,8 @@ export const CardModal = () => {
               {cardData?.subtasks?.map((subtask) => (
                 <div key={subtask.id} className="group flex items-center justify-between gap-x-3 p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50 transition">
                   <div className="flex items-center gap-x-3 flex-1 cursor-pointer" onClick={() => onToggleSubtask(subtask.id, subtask.isCompleted)}>
-                    <CheckCircle2 className={`h-4 w-4 ${subtask.isCompleted ? 'text-green-500 fill-green-50' : 'text-gray-300'}`} />
-                    <span className={`text-sm ${subtask.isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{subtask.title}</span>
+                    <CheckCircle2 className={\h-4 w-4 \\} />
+                    <span className={\	ext-sm \\}>{subtask.title}</span>
                   </div>
                   <Button onClick={() => onDeleteSubtask(subtask.id)} variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition text-red-500">
                     <Trash2 className="h-3 w-3" />
@@ -429,59 +325,21 @@ export const CardModal = () => {
                   {cardData?.attachments?.length || 0}
                 </span>
               </div>
-              <div className="flex items-center gap-x-2">
-                <Button onClick={() => setIsAddingLink(!isAddingLink)} variant="outline" size="sm" className="h-8 rounded-lg text-xs font-medium px-3">
-                  <LinkIcon className="h-3 w-3 mr-1.5" />
-                  Link
-                </Button>
-                
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  ref={fileInputRef} 
-                  onChange={onImageUpload}
-                />
-                <Button onClick={() => fileInputRef.current?.click()} variant="outline" size="sm" className="h-8 rounded-lg text-xs font-medium px-3">
-                  <ImageIcon className="h-3 w-3 mr-1.5" />
-                  Image
-                </Button>
-              </div>
+              <Button onClick={onAddAttachment} variant="outline" size="sm" className="h-8 rounded-lg text-xs font-medium px-3">
+                <Plus className="h-3 w-3 mr-1.5" />
+                Add link
+              </Button>
             </div>
-
-            {isAddingLink && (
-              <div className="flex items-center gap-x-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
-                <input 
-                  type="text"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') onSubmitLink(); }}
-                  placeholder="Paste URL here..."
-                  className="flex-1 text-sm px-3 py-1.5 border rounded focus:outline-none focus:ring-1 focus:ring-gray-300"
-                  autoFocus
-                />
-                <Button onClick={onSubmitLink} size="sm" className="h-8 rounded px-3">Add</Button>
-                <Button onClick={() => setIsAddingLink(false)} variant="ghost" size="sm" className="h-8 w-8 p-0 rounded text-gray-500">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
 
             {cardData?.attachments?.map((attachment) => (
               <div key={attachment.id} className="group flex items-start justify-between gap-x-3 p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition">
                 <div className="flex items-start gap-x-3">
-                  {attachment.type === "image" ? (
-                    <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden border border-gray-200">
-                      <img src={attachment.url} alt="Attachment" className="object-cover w-full h-full" />
-                    </div>
-                  ) : (
-                    <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
-                      <LinkIcon className="h-5 w-5 text-gray-400" />
-                    </div>
-                  )}
+                  <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                    <LinkIcon className="h-5 w-5 text-gray-400" />
+                  </div>
                   <div className="flex flex-col">
                     <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-sky-600 hover:underline line-clamp-1">{attachment.title || attachment.url}</a>
-                    <span className="text-xs text-gray-500 mt-0.5">{attachment.type === "image" ? "Image" : "Link"}</span>
+                    <span className="text-xs text-gray-500 mt-0.5">Link</span>
                   </div>
                 </div>
                 <Button onClick={() => onDeleteAttachment(attachment.id)} variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition text-red-500">
@@ -548,3 +406,6 @@ export const CardModal = () => {
     </Sheet>
   );
 };
+\
+
+fs.writeFileSync(path.join('components', 'modals', 'card-modal', 'index.tsx'), newCode);

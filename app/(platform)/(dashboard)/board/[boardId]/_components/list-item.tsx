@@ -40,7 +40,7 @@ export const ListItem = ({ data, index }: ListItemProps) => {
         >
           <div
             {...provided.dragHandleProps}
-            className="w-full rounded-md bg-[#f2f2f4] shadow-md pb-2"
+            className="w-full rounded-xl bg-[#f2f2f4] pb-2"
           >
             <ListHeader onAddCard={enableEditing} data={data} />
 
@@ -50,7 +50,7 @@ export const ListItem = ({ data, index }: ListItemProps) => {
                   {...provided.droppableProps}
                   ref={provided.innerRef}
                   className={cn(
-                    "mx-1 px-1 py-0.5 flex flex-col gap-y-2",
+                    "mx-2 px-1 py-0.5 flex flex-col gap-y-3",
                     data.cards.length > 0 ? "mt-2" : "mt-0"
                   )}
                 >

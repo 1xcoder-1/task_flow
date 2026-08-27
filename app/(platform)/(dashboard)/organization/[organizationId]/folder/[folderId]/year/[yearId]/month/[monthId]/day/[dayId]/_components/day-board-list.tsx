@@ -6,6 +6,7 @@ import { User2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FormPopover } from "@/components/form/form-popover";
 import { db } from "@/lib/db";
+import { BoardCardOptionsModal } from "@/components/modals/board-card-options-modal";
 
 interface DayBoardListProps {
   dayFolderId: string;
@@ -30,25 +31,27 @@ export const DayBoardList = async ({ dayFolderId }: DayBoardListProps) => {
     <div className="space-y-4">
       <div className="flex items-center font-semibold text-lg text-neutral-700">
         <User2 className="h-6 w-6 mr-2" />
-        Your boards in this folder
+        Your Boards
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {boards.map((board) => (
-          <Link
-            key={board.id}
-            href={`/board/${board.id}`}
-            style={{ backgroundImage: `url(${board.imageThumbUrl})` }}
-            className="group relative aspect-video bg-no-repeat bg-center bg-cover bg-sky-700 rounded-xl shadow-sm h-full w-full overflow-hidden hover:shadow-md transition"
-          >
-            <div
-              aria-hidden
-              className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition"
-            />
-            <div className="relative p-3 h-full flex flex-col justify-between">
-              <p className="font-semibold text-white drop-shadow-md tracking-wide">{board.title}</p>
-            </div>
-          </Link>
+          <div key={board.id} className="group relative aspect-video bg-sky-700 rounded-xl shadow-sm h-full w-full overflow-hidden hover:shadow-md transition">
+            <Link
+              href={`/board/${board.id}`}
+              style={{ backgroundImage: `url(${board.imageThumbUrl})` }}
+              className="absolute inset-0 block h-full w-full bg-no-repeat bg-center bg-cover"
+            >
+              <div
+                aria-hidden
+                className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition"
+              />
+              <div className="relative p-3 h-full flex flex-col justify-between pointer-events-none">
+                <p className="font-semibold text-white drop-shadow-md tracking-wide">{board.title}</p>
+              </div>
+            </Link>
+            <BoardCardOptionsModal board={{ id: board.id, title: board.title }} />
+          </div>
         ))}
         <FormPopover sideOffset={10} side="right">
           <div

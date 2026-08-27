@@ -51,6 +51,22 @@ const handler = async (data: InputType): Promise<ReturnType> => {
         imageFullUrl,
         imageUserName,
         imageLinkHtml,
+        lists: {
+          create: [
+            {
+              title: "Pending",
+              order: 1,
+            },
+            {
+              title: "In Progress",
+              order: 2,
+            },
+            {
+              title: "Done",
+              order: 3,
+            }
+          ]
+        }
       },
     });
 
