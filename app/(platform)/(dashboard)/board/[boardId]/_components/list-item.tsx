@@ -12,9 +12,10 @@ import { cn } from "@/lib/utils";
 type ListItemProps = {
   data: ListWithCards;
   index: number;
+  isImpBoard?: boolean;
 };
 
-export const ListItem = ({ data, index }: ListItemProps) => {
+export const ListItem = ({ data, index, isImpBoard }: ListItemProps) => {
   const textareaRef = useRef<ElementRef<"textarea">>(null);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -65,6 +66,7 @@ export const ListItem = ({ data, index }: ListItemProps) => {
               isEditing={isEditing}
               enableEditing={enableEditing}
               disableEditing={disableEditing}
+              isImpBoard={isImpBoard}
             />
           </div>
         </li>

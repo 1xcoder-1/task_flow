@@ -14,6 +14,7 @@ import { updateCardOrder } from "@/actions/update-card-order";
 type ListContainerProps = {
   data: ListWithCards[];
   boardId: string;
+  isImpBoard?: boolean;
 };
 
 function reorder<T>(list: T[], startIndex: number, endIndex: number) {
@@ -24,7 +25,7 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number) {
   return result;
 }
 
-export const ListContainer = ({ data, boardId }: ListContainerProps) => {
+export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps) => {
   const [isMounted, setIsMounted] = useState(false);
   const [orderedData, setOrderedData] = useState(data);
   const [prevData, setPrevData] = useState(data);
@@ -181,7 +182,7 @@ export const ListContainer = ({ data, boardId }: ListContainerProps) => {
             className="flex gap-x-3 h-full"
           >
             {orderedData.map((list, i) => (
-              <ListItem key={list.id} index={i} data={list} />
+              <ListItem key={list.id} index={i} data={list} isImpBoard={isImpBoard} />
             ))}
 
             {provided.placeholder}

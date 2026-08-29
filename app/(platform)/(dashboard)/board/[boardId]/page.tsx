@@ -28,8 +28,8 @@ const BoardIdPage = async ({ params }: BoardIdPageProps) => {
           order: "asc",
         },
         include: {
-          comments: true,
-          attachments: true,
+          comments: { select: { id: true } },
+          attachments: { select: { id: true } },
           assignments: true,
         }
       },
@@ -39,9 +39,13 @@ const BoardIdPage = async ({ params }: BoardIdPageProps) => {
     },
   });
 
+  const board = await db.board.findUnique({
+    where: { id: boardId }
+  });
+
   return (
     <div className="p-4 h-full overflow-x-auto board-scrollbar">
-      <ListContainer boardId={boardId} data={lists} />
+      <ListContainer boardId={boardId} data={lists} isImpBoard={board?.isImpBoard || false} />
     </div>
   );
 };

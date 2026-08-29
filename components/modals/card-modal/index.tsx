@@ -50,20 +50,6 @@ const HeaderSection = ({ title, setTitle, onTitleBlur, description, setDescripti
 
 const MetadataSection = ({ cardData, priority, onPriorityChange, executeUpdateCard, params, memberships, isAssigneeOpen, setIsAssigneeOpen, onToggleAssignee }: any) => (
   <div className="grid grid-cols-[100px_1fr] gap-y-4 text-sm items-center">
-    <div className="text-gray-500">Status</div>
-    <div>
-      <span className="inline-flex items-center gap-x-1.5 px-2.5 py-1 rounded-md border border-gray-200 text-gray-700 bg-white shadow-sm text-xs font-medium">
-        <span className="text-sm">
-          {(!cardData?.list.title) ? "📋" 
-            : cardData.list.title.toLowerCase().includes("done") || cardData.list.title.toLowerCase().includes("complete") ? "✅"
-            : cardData.list.title.toLowerCase().includes("progress") || cardData.list.title.toLowerCase().includes("doing") ? "⏳"
-            : cardData.list.title.toLowerCase().includes("review") ? "👀"
-            : "📋"}
-        </span>
-        {cardData?.list.title || "Loading..."}
-      </span>
-    </div>
-
     <div className="text-gray-500">Priority</div>
     <div>
       <div className="relative inline-block">

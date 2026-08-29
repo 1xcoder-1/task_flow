@@ -20,6 +20,8 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   let comment;
 
   try {
+    const card = await db.card.findUnique({ where: { id: cardId } });
+
     comment = await db.comment.create({
       data: {
         text,
@@ -29,6 +31,18 @@ const handler = async (data: InputType): Promise<ReturnType> => {
         userName: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Unknown User',
       },
     });
+
+    if (card?.linkedCardId) {
+      await db.comment.create({
+        data: {
+          text,
+          cardId: card.linkedCardId,
+          userId: user.id,
+          userImage: user.imageUrl,
+          userName: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Unknown User',
+        },
+      });
+    }
   } catch (error) {
     return { error: "Failed to create." };
   }

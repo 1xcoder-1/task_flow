@@ -19,6 +19,8 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   let attachment;
 
   try {
+    const card = await db.card.findUnique({ where: { id: cardId } });
+
     attachment = await db.attachment.create({
       data: {
         url,
@@ -27,6 +29,17 @@ const handler = async (data: InputType): Promise<ReturnType> => {
         cardId,
       },
     });
+
+    if (card?.linkedCardId) {
+      await db.attachment.create({
+        data: {
+          url,
+          type,
+          title: title || "Attachment",
+          cardId: card.linkedCardId,
+        },
+      });
+    }
   } catch (error) {
     return { error: "Failed to create." };
   }

@@ -19,7 +19,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     };
   }
 
-  const { title, boardId, listId } = data;
+  const { title, boardId, listId, targetListId } = data;
 
   let card;
 
@@ -46,12 +46,43 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     });
 
     const newOrder = lastCard ? lastCard.order + 1 : 1;
+    let linkedCardId = null;
+
+    if (targetListId) {
+      const targetList = await db.list.findUnique({
+        where: { id: targetListId, board: { orgId } },
+      });
+      if (targetList) {
+        const lastTargetCard = await db.card.findFirst({
+          where: { listId: targetListId },
+          orderBy: { order: "desc" },
+          select: { order: true },
+        });
+        const newTargetOrder = lastTargetCard ? lastTargetCard.order + 1 : 1;
+        const targetCard = await db.card.create({
+          data: {
+            title,
+            listId: targetListId,
+            order: newTargetOrder,
+          },
+        });
+        linkedCardId = targetCard.id;
+        
+        await createAuditLog({
+          entityId: targetCard.id,
+          entityTitle: targetCard.title,
+          entityType: ENTITY_TYPE.CARD,
+          action: ACTION.CREATE,
+        });
+      }
+    }
 
     card = await db.card.create({
       data: {
         title,
         listId,
         order: newOrder,
+        linkedCardId,
       },
     });
 

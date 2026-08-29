@@ -16,7 +16,7 @@ export const BoardList = async () => {
 
   if (!orgId) return redirect("/select-org");
 
-  const folders = await db.folder.findMany({
+  let folders = await db.folder.findMany({
     where: {
       orgId,
     },
@@ -24,6 +24,97 @@ export const BoardList = async () => {
       createdAt: "desc",
     },
   });
+
+  const impFolderExists = folders.some((f) => f.title === "Important");
+
+  if (!impFolderExists) {
+    const currentYear = new Date().getFullYear().toString();
+    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+    const currentDay = new Date().getDate().toString();
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const autoCreateLogTitle = `AutoCreate_Important_${currentYear}_${currentMonth}_${currentDay}`;
+
+    const alreadyCreatedImportantToday = await db.auditLog.findFirst({
+      where: {
+        orgId,
+        entityType: "FOLDER",
+        action: "CREATE",
+        entityTitle: autoCreateLogTitle,
+        createdAt: { gte: startOfDay }
+      }
+    });
+
+    if (!alreadyCreatedImportantToday) {
+      const newImpFolder = await db.folder.create({
+        data: {
+          title: "Important",
+          orgId,
+        }
+      });
+      
+      const yearFolder = await db.yearFolder.create({
+        data: { title: currentYear, folderId: newImpFolder.id }
+      });
+      const monthFolder = await db.monthFolder.create({
+        data: { title: currentMonth, yearFolderId: yearFolder.id }
+      });
+      const dayFolder = await db.dayFolder.create({
+        data: { title: currentDay, monthFolderId: monthFolder.id }
+      });
+      await db.board.create({
+        data: {
+          title: "Imp Tasks daily",
+          orgId,
+          dayFolderId: dayFolder.id,
+          isImpBoard: true,
+          imageId: "default",
+          imageThumbUrl: "https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=400&auto=format&fit=crop",
+          imageFullUrl: "https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=1080&auto=format&fit=crop",
+          imageUserName: "System",
+          imageLinkHtml: "System",
+          lists: {
+            create: [
+              {
+                title: "Pending",
+                order: 1,
+              },
+              {
+                title: "In Progress",
+                order: 2,
+              },
+              {
+                title: "Done",
+                order: 3,
+              }
+            ]
+          }
+        }
+      });
+
+      try {
+        const { userId } = await auth();
+        await db.auditLog.create({
+          data: {
+            orgId,
+            action: "CREATE",
+            entityId: newImpFolder.id,
+            entityType: "FOLDER",
+            entityTitle: autoCreateLogTitle,
+            userId: userId || "system",
+            userImage: "",
+            userName: "System",
+          }
+        });
+      } catch (e) {
+        console.error(e);
+      }
+
+      folders = [newImpFolder, ...folders];
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -54,7 +145,7 @@ export const BoardList = async () => {
                 {folder.title}
               </Link>
               <div className="mr-4 flex-shrink-0">
-                {isAdmin && <FolderOptionsModal folder={folder} />}
+                {isAdmin && folder.title !== "Important" && <FolderOptionsModal folder={folder} />}
               </div>
             </div>
           </div>
