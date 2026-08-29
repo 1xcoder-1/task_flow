@@ -21,16 +21,23 @@ const handler = async (data: InputType): Promise<ReturnType> => {
 
   let updatedCards;
 
+  // Verify the user has access to this board
+  const board = await db.board.findUnique({
+    where: {
+      id: boardId,
+      orgId,
+    },
+  });
+
+  if (!board) {
+    return { error: "Board not found or unauthorized" };
+  }
+
   try {
     const transaction = items.map((card) =>
       db.card.update({
         where: {
           id: card.id,
-          list: {
-            board: {
-              orgId,
-            },
-          },
         },
         data: {
           order: card.order,
@@ -41,6 +48,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
 
     updatedCards = await db.$transaction(transaction);
   } catch (error) {
+    console.error("Failed to update card order:", error);
     return {
       error: "Failed to update.",
     };

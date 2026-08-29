@@ -62,10 +62,11 @@ export const BoardCardOptionsModal = ({ board }: BoardCardOptionsModalProps) => 
     <Dialog>
       <DialogTrigger asChild>
         <button
+          aria-label="Card Options"
           onClick={(e) => {
             e.stopPropagation();
           }}
-          className="absolute top-2 right-2 p-1.5 text-white hover:bg-white/30 bg-black/20 rounded-md transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 z-10"
+          className="absolute top-2 right-2 p-1.5 text-white hover:bg-white/30 bg-black/20 rounded-md transition opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0 z-10"
         >
           <MoreHorizontal className="h-5 w-5" />
         </button>
@@ -80,7 +81,7 @@ export const BoardCardOptionsModal = ({ board }: BoardCardOptionsModalProps) => 
             Edit Board
           </DialogTitle>
           <DialogClose ref={closeRef} asChild>
-            <button className="hidden" />
+            <button aria-label="Close dialog" className="hidden" />
           </DialogClose>
 
           <form action={onUpdateSubmit} className="space-y-4">

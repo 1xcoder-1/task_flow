@@ -9,8 +9,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ boardId: string }>;
 }) {
-  const { boardId } = await params;
-  const { orgId } = await auth();
+  const [{ boardId }, { orgId }] = await Promise.all([params, auth()]);
 
   if (!orgId) return { title: "Board" };
 
@@ -33,8 +32,7 @@ const BoardIdLayout = async ({
   children: React.ReactNode;
   params: Promise<{ boardId: string }>;
 }) => {
-  const { boardId } = await params;
-  const { orgId } = await auth();
+  const [{ boardId }, { orgId }] = await Promise.all([params, auth()]);
 
   if (!orgId) redirect("/select-org");
 

@@ -94,7 +94,8 @@ export const FolderOptionsModal = ({ folder }: FolderOptionsModalProps) => {
     <Dialog>
       <DialogTrigger asChild>
         <button
-          className="p-1 text-slate-500 hover:text-slate-800 hover:bg-black/5 rounded-full transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0"
+          aria-label="Folder Options"
+          className="p-1 text-slate-500 hover:text-slate-800 hover:bg-black/5 rounded-full transition opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0"
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
@@ -110,19 +111,19 @@ export const FolderOptionsModal = ({ folder }: FolderOptionsModalProps) => {
             Edit Team Folder
           </DialogTitle>
           <DialogClose ref={closeRef} asChild>
-            <button className="hidden" />
+            <button aria-label="Close dialog" className="hidden" />
           </DialogClose>
 
           <form action={onUpdateSubmit} className="space-y-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-neutral-700">
+                <label htmlFor={`logoFile-${folder.id}`} className="text-sm font-semibold text-neutral-700">
                   Logo
                 </label>
                 <div className="flex items-center gap-x-4">
                   <div className="relative flex items-center justify-center h-16 w-16 min-w-[64px] border-2 border-dashed border-gray-300 rounded-md bg-gray-50 overflow-hidden">
                     {logoBase64 ? (
-                      <Image src={logoBase64} alt="Upload preview" fill className="object-cover" />
+                      <Image src={logoBase64} alt="Upload preview" fill sizes="64px" className="object-cover" />
                     ) : (
                       <Upload className="h-5 w-5 text-gray-500" />
                     )}

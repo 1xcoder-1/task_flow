@@ -93,7 +93,7 @@ export const FormGenericFolderPopover = ({
         </div>
 
         <DialogClose ref={closeRef} asChild>
-          <button className="hidden" />
+          <button aria-label="Close dialog" className="hidden" />
         </DialogClose>
 
         <form action={onSubmit} className="space-y-4">

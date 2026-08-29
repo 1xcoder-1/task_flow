@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 
 import { Skeleton } from "@/components/ui/skeleton";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 
 import { ActivityItem } from "@/components/activity-item";

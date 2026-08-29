@@ -39,20 +39,16 @@ export const ListItem = ({ data, index }: ListItemProps) => {
           className="shrink-0 h-full w-[272px] select-none"
         >
           <div
-            {...provided.dragHandleProps}
             className="w-full rounded-xl bg-[#f2f2f4] pb-2"
           >
-            <ListHeader onAddCard={enableEditing} data={data} />
+            <ListHeader onAddCard={enableEditing} data={data} dragHandleProps={provided.dragHandleProps} />
 
             <Droppable droppableId={data.id} type="card">
               {(provided) => (
                 <ol
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className={cn(
-                    "mx-2 px-1 py-0.5 flex flex-col gap-y-3",
-                    data.cards.length > 0 ? "mt-2" : "mt-0"
-                  )}
+                  className="mx-2 px-1 py-0.5 flex flex-col gap-y-3 mt-2 min-h-[60px]"
                 >
                   {data.cards.map((card, i) => (
                     <CardItem index={i} key={card.id} data={card} />

@@ -58,7 +58,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "doctor": "npx react-doctor@latest"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.8.2",
@@ -84,7 +85,7 @@
     "date-fns": "^4.1.0",
     "lodash": "^4.17.23",
     "lucide-react": "^0.574.0",
-    "next": "15.5.10",
+    "next": "^15.5.18",
     "next-pwa": "^5.6.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

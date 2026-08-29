@@ -16,8 +16,7 @@ interface FolderIdPageProps {
 }
 
 const FolderIdPage = async ({ params }: FolderIdPageProps) => {
-  const { folderId, organizationId } = await params;
-  const { orgRole } = await auth();
+  const [{ folderId, organizationId }, { orgRole, userId }] = await Promise.all([params, auth()]);
   const isAdmin = orgRole === "org:admin";
 
   const folder = await db.folder.findUnique({
@@ -30,7 +29,6 @@ const FolderIdPage = async ({ params }: FolderIdPageProps) => {
     }
   });
 
-  const { userId } = await auth();
 
   const hasAccess = folder?.accesses.some((a) => a.userId === userId);
 

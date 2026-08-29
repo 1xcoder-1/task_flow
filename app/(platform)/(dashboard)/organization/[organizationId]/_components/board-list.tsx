@@ -63,6 +63,7 @@ export const BoardList = async () => {
           <FormFolderPopover sideOffset={10} side="right">
             <div className="group flex flex-col w-40">
               <div
+                aria-label="Create Team"
                 role="button"
                 className="w-full rounded-md hover:bg-black/5 p-1 pb-1 transition cursor-pointer"
               >

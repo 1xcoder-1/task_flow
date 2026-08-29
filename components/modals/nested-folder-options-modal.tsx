@@ -69,7 +69,8 @@ export const NestedFolderOptionsModal = ({ folder, type }: NestedFolderOptionsMo
     <Dialog>
       <DialogTrigger asChild>
         <button
-          className="p-1 text-slate-500 hover:text-slate-800 hover:bg-black/10 rounded-full transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0"
+          aria-label="Folder Options"
+          className="p-1 text-slate-500 hover:text-slate-800 hover:bg-black/10 rounded-full transition opacity-0 group-hover:opacity-100 focus:opacity-100 flex-shrink-0"
         >
           <MoreHorizontal className="h-4 w-4" />
         </button>
@@ -84,7 +85,7 @@ export const NestedFolderOptionsModal = ({ folder, type }: NestedFolderOptionsMo
             Edit {typeLabel}
           </DialogTitle>
           <DialogClose ref={closeRef} asChild>
-            <button className="hidden" />
+            <button aria-label="Close dialog" className="hidden" />
           </DialogClose>
 
           <form action={onUpdateSubmit} className="space-y-4">

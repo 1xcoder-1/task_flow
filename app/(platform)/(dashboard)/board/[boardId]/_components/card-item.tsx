@@ -4,7 +4,7 @@ import { Card } from "@prisma/client";
 import { Draggable } from "@hello-pangea/dnd";
 import { useCardModal } from "@/hooks/use-card-modal";
 import { Calendar, Paperclip, MessageSquare } from "lucide-react";
-import { useParams } from "next/navigation";
+import Image from "next/image";
 import { useAction } from "@/hooks/use-action";
 import { updateCard } from "@/actions/update-card";
 import { toast } from "sonner";
@@ -15,9 +15,17 @@ type CardItemProps = {
   index: number;
 };
 
+const getPriorityDisplay = (priority?: string) => {
+  switch (priority?.toLowerCase()) {
+    case "high": return "🔴 High";
+    case "medium": return "🟠 Medium";
+    case "low": return "⚪ Low";
+    default: return "⚪ Low";
+  }
+};
+
 export const CardItem = ({ data, index }: CardItemProps) => {
   const cardModal = useCardModal();
-  const params = useParams();
   
   const cardData = data as CardWithRelations & { progress?: number, priority?: string, isActive?: boolean };
 
@@ -29,19 +37,11 @@ export const CardItem = ({ data, index }: CardItemProps) => {
     e.stopPropagation();
     execute({
       id: data.id,
-      boardId: params.boardId as string,
+      boardId: window.location.pathname.match(/\/board\/([^\/]+)/)?.[1] || "",
       isActive: !cardData.isActive,
     });
   };
 
-  const getPriorityDisplay = (priority?: string) => {
-    switch (priority?.toLowerCase()) {
-      case "high": return "🔴 High";
-      case "medium": return "🟠 Medium";
-      case "low": return "⚪ Low";
-      default: return "⚪ Low";
-    }
-  };
 
   const attachmentsCount = cardData.attachments?.length || 0;
   const commentsCount = cardData.comments?.length || 0;
@@ -54,22 +54,29 @@ export const CardItem = ({ data, index }: CardItemProps) => {
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           ref={provided.innerRef}
-          role="button"
-          onClick={() => cardModal.onOpen(data.id)}
           className="group relative flex flex-col gap-y-3 bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-3.5 shadow-sm transition"
         >
           {/* Card Title & Description */}
           <div className="flex flex-col gap-1.5 text-black">
             <div className="flex items-start gap-x-2">
-              <input
-                type="checkbox"
-                checked={cardData.isActive || false}
-                readOnly
-                onClick={onToggleActive}
-                className="mt-1 w-4 h-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500 cursor-pointer"
-              />
+              <div className="relative z-20 flex shrink-0 mt-0.5">
+                <input
+                  aria-label="Toggle card active status"
+                  type="checkbox"
+                  checked={cardData.isActive || false}
+                  readOnly
+                  onClick={onToggleActive}
+                  className="w-4 h-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500 cursor-pointer"
+                />
+              </div>
               <h3 className="font-semibold text-[15px] leading-tight">
-                {data.title}
+                <button
+                  type="button"
+                  onClick={() => cardModal.onOpen(data.id)}
+                  className="before:absolute before:inset-0 before:z-10 text-left focus:outline-none focus:underline"
+                >
+                  {data.title}
+                </button>
               </h3>
             </div>
             {data.description && (
@@ -83,12 +90,14 @@ export const CardItem = ({ data, index }: CardItemProps) => {
           <div className="flex items-center justify-between mt-2">
             <div className="flex -space-x-1.5 overflow-hidden">
               {assignments.map((assignment) => (
-                <img 
+                <Image 
                   key={assignment.id}
                   className="inline-block h-6 w-6 rounded-full ring-2 ring-white" 
                   src={assignment.userImage} 
                   alt={assignment.userName} 
                   title={assignment.userName}
+                  width={24}
+                  height={24}
                 />
               ))}
             </div>

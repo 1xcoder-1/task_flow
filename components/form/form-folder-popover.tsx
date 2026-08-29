@@ -73,19 +73,19 @@ export const FormFolderPopover = ({
         </div>
 
         <DialogClose ref={closeRef} asChild>
-          <button className="hidden" />
+          <button aria-label="Close dialog" className="hidden" />
         </DialogClose>
 
         <form action={onSubmit} className="space-y-4">
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-neutral-700">
+              <label htmlFor="logoFile" className="text-sm font-semibold text-neutral-700">
                 Logo
               </label>
               <div className="flex items-center gap-x-4">
                 <div className="relative flex items-center justify-center h-16 w-16 min-w-[64px] border-2 border-dashed border-gray-300 rounded-md bg-gray-50 overflow-hidden">
                   {logoBase64 ? (
-                    <Image src={logoBase64} alt="Upload preview" fill className="object-cover" />
+                    <Image src={logoBase64} alt="Upload preview" fill sizes="64px" className="object-cover" />
                   ) : (
                     <Upload className="h-5 w-5 text-gray-500" />
                   )}

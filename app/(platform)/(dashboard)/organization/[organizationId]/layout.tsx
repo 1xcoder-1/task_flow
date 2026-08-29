@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { startCase } from "lodash";
+import startCase from "lodash/startCase";
 import { auth } from "@clerk/nextjs/server";;
 
 import { OrgControl } from "./_components/org-control";

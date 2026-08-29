@@ -7,6 +7,7 @@ import { manageFolderAccess } from "@/actions/manage-folder-access";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Folder } from "@prisma/client";
+import Image from "next/image";
 
 export const FolderAccessPage = () => {
   const { memberships, isLoaded } = useOrganization({
@@ -63,7 +64,7 @@ export const FolderAccessPage = () => {
           return (
           <div key={member.id} className="p-4 border rounded-lg bg-white shadow-sm space-y-4">
             <div className="flex items-center gap-x-3">
-              <img src={userData.imageUrl} className="w-8 h-8 rounded-full" alt="User avatar" />
+              <Image src={userData.imageUrl} width={32} height={32} className="w-8 h-8 rounded-full" alt="User avatar" />
               <div>
                 <p className="font-semibold text-sm text-slate-900">
                   {userData.firstName} {userData.lastName}

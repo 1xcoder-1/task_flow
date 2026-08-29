@@ -61,7 +61,7 @@ export const FolderAuthWrapper = ({ children, folderId }: FolderAuthWrapperProps
               type="password"
               errors={fieldErrors}
             />
-            <FormSubmit className="w-full bg-black hover:bg-black/90 text-white font-medium py-2.5 rounded-lg shadow-sm transition-all" disabled={isLoading}>
+            <FormSubmit className="w-full bg-black hover:bg-black/90 text-white font-medium py-2.5 rounded-lg shadow-sm transition-colors" disabled={isLoading}>
               Unlock Access
             </FormSubmit>
           </form>

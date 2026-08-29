@@ -16,9 +16,10 @@ import { GripVertical, PlusCircle } from "lucide-react";
 type ListHeaderProps = {
   data: ListWithCards;
   onAddCard: () => void;
+  dragHandleProps?: any;
 };
 
-export const ListHeader = ({ data, onAddCard }: ListHeaderProps) => {
+export const ListHeader = ({ data, onAddCard, dragHandleProps }: ListHeaderProps) => {
   const [title, setTitle] = useState(data.title);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -106,12 +107,13 @@ export const ListHeader = ({ data, onAddCard }: ListHeaderProps) => {
             <button type="button" hidden aria-disabled />
           </form>
         ) : (
-          <div
+          <button
+            type="button"
             onClick={enableEditing}
-            className="text-base font-semibold border-transparent cursor-text truncate text-black"
+            className="text-base font-semibold border-transparent cursor-text truncate text-black text-left"
           >
             {data.title}
-          </div>
+          </button>
         )}
         {!isEditing && (
           <div className="bg-gray-200/60 text-gray-600 text-xs font-semibold px-2 py-0.5 rounded-full flex items-center justify-center">
@@ -121,15 +123,21 @@ export const ListHeader = ({ data, onAddCard }: ListHeaderProps) => {
       </div>
 
       <div className="flex items-center gap-x-1 text-black">
-        <div className="p-1 hover:bg-gray-200 rounded-md cursor-grab active:cursor-grabbing">
+        <div 
+          {...dragHandleProps}
+          className="p-1 hover:bg-gray-200 rounded-md cursor-grab active:cursor-grabbing"
+        >
           <GripVertical className="h-4 w-4" />
         </div>
-        <div 
+        <ListOptions onAddCard={onAddCard} data={data} />
+        <button 
+          type="button"
           onClick={onAddCard}
+          aria-label="Add a card"
           className="p-1 hover:bg-gray-200 rounded-md cursor-pointer"
         >
           <PlusCircle className="h-4 w-4" />
-        </div>
+        </button>
       </div>
     </div>
   );

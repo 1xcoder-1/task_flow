@@ -64,6 +64,15 @@ export const FormPicker = ({ id, errors }: FormPickerProps) => {
               "relative aspect-video group hover:opacity-75 transition bg-muted",
               pending && "opcity-50 hover:opacity-50 cursor-auto"
             )}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                if (pending) return;
+                setSelectedImageId(image.id);
+              }
+            }}
             onClick={() => {
               if (pending) return;
               setSelectedImageId(image.id);
@@ -86,6 +95,7 @@ export const FormPicker = ({ id, errors }: FormPickerProps) => {
               alt={`Unsplash image_${image.id}`}
               className="object-cover rounded-sm"
               fill
+              sizes="(max-width: 768px) 100vw, 33vw"
             />
 
             {selectedImageId === image.id && (

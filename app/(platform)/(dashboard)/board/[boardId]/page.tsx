@@ -11,8 +11,7 @@ type BoardIdPageProps = {
 };
 
 const BoardIdPage = async ({ params }: BoardIdPageProps) => {
-  const { boardId } = await params;
-  const { orgId } = await auth();
+  const [{ boardId }, { orgId }] = await Promise.all([params, auth()]);
 
   if (!orgId) redirect("/select-org");
 
@@ -41,7 +40,7 @@ const BoardIdPage = async ({ params }: BoardIdPageProps) => {
   });
 
   return (
-    <div className="p-4 h-full overflow-x-auto">
+    <div className="p-4 h-full overflow-x-auto board-scrollbar">
       <ListContainer boardId={boardId} data={lists} />
     </div>
   );

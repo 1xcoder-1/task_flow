@@ -48,6 +48,7 @@ export const DayFolderList = async ({ monthFolderId, yearFolderId, organizationI
         <FormGenericFolderPopover type="day" parentId={monthFolderId} sideOffset={10} side="right">
           <div className="group flex flex-col w-40 items-center">
             <div
+              aria-label="Create Day Folder"
               role="button"
               className="w-full rounded-md hover:bg-black/5 p-1 pb-1 transition flex flex-col items-center justify-center cursor-pointer"
             >

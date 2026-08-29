@@ -88,3 +88,23 @@ a[href^="https://liveblocks.io"] {
 [class*="lb-badge"], [class*="lb-watermark"] {
   display: none !important;
 }
+
+@layer utilities {
+  .board-scrollbar::-webkit-scrollbar {
+    height: 16px;
+  }
+  .board-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .board-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 9999px;
+    border: 4px solid transparent;
+    background-clip: padding-box;
+  }
+  .board-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.7);
+    border: 4px solid transparent;
+    background-clip: padding-box;
+  }
+}

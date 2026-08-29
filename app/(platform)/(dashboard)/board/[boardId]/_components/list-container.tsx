@@ -25,7 +25,18 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number) {
 }
 
 export const ListContainer = ({ data, boardId }: ListContainerProps) => {
+  const [isMounted, setIsMounted] = useState(false);
   const [orderedData, setOrderedData] = useState(data);
+  const [prevData, setPrevData] = useState(data);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (data !== prevData) {
+    setPrevData(data);
+    setOrderedData(data);
+  }
 
   const { execute: executeUpdateListOrder } = useAction(updateListOrder, {
     onSuccess: (data) => {
@@ -45,9 +56,10 @@ export const ListContainer = ({ data, boardId }: ListContainerProps) => {
     },
   });
 
-  useEffect(() => {
-    setOrderedData(data);
-  }, [data]);
+  // Prevent rendering DND until mounted to fix Strict Mode hydration errors
+  if (!isMounted) {
+    return null;
+  }
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source, type } = result;
@@ -82,21 +94,30 @@ export const ListContainer = ({ data, boardId }: ListContainerProps) => {
       let newOrderedData = [...orderedData];
 
       // source and destination list
-      const sourceList = newOrderedData.find(
+      const sourceListIndex = newOrderedData.findIndex(
         (list) => list.id === source.droppableId
       );
-
-      const destinationList = newOrderedData.find(
+      const destListIndex = newOrderedData.findIndex(
         (list) => list.id === destination.droppableId
       );
 
-      if (!sourceList || !destinationList) return;
+      if (sourceListIndex === -1 || destListIndex === -1) return;
 
-      // check if cards exists on the source list
-      if (!sourceList.cards) sourceList.cards = [];
+      // clone the lists and their cards to avoid direct mutation of state
+      const sourceList = { 
+        ...newOrderedData[sourceListIndex], 
+        cards: newOrderedData[sourceListIndex].cards ? [...newOrderedData[sourceListIndex].cards] : [] 
+      };
+      
+      const destinationList = sourceListIndex === destListIndex 
+        ? sourceList 
+        : { 
+            ...newOrderedData[destListIndex], 
+            cards: newOrderedData[destListIndex].cards ? [...newOrderedData[destListIndex].cards] : [] 
+          };
 
-      // check if cards exists on the destination list
-      if (!destinationList.cards) destinationList.cards = [];
+      newOrderedData[sourceListIndex] = sourceList;
+      newOrderedData[destListIndex] = destinationList;
 
       // moving the card in the same list
       if (source.droppableId === destination.droppableId) {
@@ -106,16 +127,16 @@ export const ListContainer = ({ data, boardId }: ListContainerProps) => {
           destination.index
         );
 
-        reorderedCards.forEach((card, i) => {
-          card.order = i;
-        });
-
-        sourceList.cards = reorderedCards;
+        sourceList.cards = reorderedCards.map((card, i) => ({
+          ...card,
+          order: i,
+        }));
+        
         setOrderedData(newOrderedData);
 
         executeUpdateCardOrder({
           boardId,
-          items: reorderedCards,
+          items: sourceList.cards.map(({ id, order, listId }) => ({ id, order, listId })),
         });
       }
       // user moves card to another list
@@ -123,26 +144,28 @@ export const ListContainer = ({ data, boardId }: ListContainerProps) => {
         // remove card from the source list
         const [movedCard] = sourceList.cards.splice(source.index, 1);
 
-        // assign the new list id to the moved card
-        movedCard.listId = destination.droppableId;
+        // create a cloned card with the new list id
+        const updatedCard = { ...movedCard, listId: destination.droppableId };
 
         // add new card to the destination list
-        destinationList.cards.splice(destination.index, 0, movedCard);
+        destinationList.cards.splice(destination.index, 0, updatedCard);
 
-        sourceList.cards.forEach((card, i) => {
-          card.order = i;
-        });
+        sourceList.cards = sourceList.cards.map((card, i) => ({
+          ...card,
+          order: i,
+        }));
 
         // update the order for each card in destination list
-        destinationList.cards.forEach((card, i) => {
-          card.order = i;
-        });
+        destinationList.cards = destinationList.cards.map((card, i) => ({
+          ...card,
+          order: i,
+        }));
 
         setOrderedData(newOrderedData);
 
         executeUpdateCardOrder({
           boardId: boardId,
-          items: destinationList.cards,
+          items: [...sourceList.cards, ...destinationList.cards].map(({ id, order, listId }) => ({ id, order, listId })),
         });
       }
     }

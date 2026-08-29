@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Poppins } from "next/font/google";
 import localFont from "next/font/local";
 
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 
 const headingFont = localFont({
