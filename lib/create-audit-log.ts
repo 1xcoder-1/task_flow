@@ -1,9 +1,9 @@
-import { auth, currentUser } from "@clerk/nextjs/server";;
+import { auth } from "@clerk/nextjs/server";
 import type { ACTION, ENTITY_TYPE } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@/lib/db";
-
+import { inngest } from "@/inngest/client";
 type Props = {
   entityId: string;
   entityType: ENTITY_TYPE;
@@ -13,23 +13,23 @@ type Props = {
 
 export const createAuditLog = async (props: Props) => {
   try {
-    const { orgId } = await auth();
-    const user = await currentUser();
+    const { orgId, userId } = await auth();
 
-    if (!user || !orgId) throw new Error("User not found.");
+    if (!userId || !orgId) throw new Error("User not found.");
 
     const { entityId, entityType, entityTitle, action } = props;
 
-    await db.auditLog.create({
+    await inngest.send({
+      name: "app/audit.log",
       data: {
         orgId,
         entityId,
         entityType,
         entityTitle,
         action,
-        userId: user.id,
-        userImage: user?.imageUrl,
-        userName: `${user?.firstName}${user?.lastName && ` ${user.lastName}`}`,
+        userId,
+        userImage: null,
+        userName: "Unknown",
       },
     });
 

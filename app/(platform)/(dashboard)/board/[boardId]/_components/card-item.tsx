@@ -54,6 +54,8 @@ export const CardItem = ({ data, index }: CardItemProps) => {
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           ref={provided.innerRef}
+          role="button"
+          onClick={() => cardModal.onOpen(data.id)}
           className="group relative flex flex-col gap-y-3 bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-3.5 shadow-sm transition"
         >
           {/* Card Title & Description */}
@@ -70,13 +72,7 @@ export const CardItem = ({ data, index }: CardItemProps) => {
                 />
               </div>
               <h3 className="font-semibold text-[15px] leading-tight">
-                <button
-                  type="button"
-                  onClick={() => cardModal.onOpen(data.id)}
-                  className="before:absolute before:inset-0 before:z-10 text-left focus:outline-none focus:underline"
-                >
-                  {data.title}
-                </button>
+                {data.title}
               </h3>
             </div>
             {data.description && (

@@ -1,14 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@clerk/nextjs/server";;
+import { auth } from "@clerk/nextjs/server";
 
 import { db } from "@/lib/db";
 import { createSafeAction } from "@/lib/create-safe-action";
 import { InputType, ReturnType } from "@/actions/create-board/types";
 import { CreateBoard } from "@/actions/create-board/schema";
-import { createAuditLog } from "@/lib/create-audit-log";
 import { ACTION, ENTITY_TYPE } from "@prisma/client";
+import { inngest } from "@/inngest/client";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
   const { userId, orgId } = await auth();
@@ -18,8 +18,6 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       error: "Unauthorized",
     };
   }
-
-
 
   const { title, image, dayFolderId } = data;
 
@@ -51,32 +49,18 @@ const handler = async (data: InputType): Promise<ReturnType> => {
         imageFullUrl,
         imageUserName,
         imageLinkHtml,
-        lists: {
-          create: [
-            {
-              title: "Pending",
-              order: 1,
-            },
-            {
-              title: "In Progress",
-              order: 2,
-            },
-            {
-              title: "Done",
-              order: 3,
-            }
-          ]
-        }
       },
     });
 
-
-    // create new activity log
-    await createAuditLog({
-      entityId: board.id,
-      entityTitle: board.title,
-      entityType: ENTITY_TYPE.BOARD,
-      action: ACTION.CREATE,
+    // Fire Inngest event to auto-generate lists and audit log
+    await inngest.send({
+      name: "app/board.create",
+      data: {
+        orgId,
+        boardId: board.id,
+        boardTitle: board.title,
+        userId: userId,
+      },
     });
   } catch (error) {
     return {

@@ -50,7 +50,9 @@ export const DayBoardList = async ({ dayFolderId }: DayBoardListProps) => {
                 <p className="font-semibold text-white drop-shadow-md tracking-wide">{board.title}</p>
               </div>
             </Link>
-            <BoardCardOptionsModal board={{ id: board.id, title: board.title }} />
+            {!board.isImpBoard && (
+              <BoardCardOptionsModal board={{ id: board.id, title: board.title }} />
+            )}
           </div>
         ))}
         <FormPopover sideOffset={10} side="right">

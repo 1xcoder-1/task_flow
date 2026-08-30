@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
+import { inngest } from "@/inngest/client";
 
 import { CreateComment } from "./schema";
 import { InputType, ReturnType } from "./types";
@@ -10,14 +11,14 @@ import { createSafeAction } from "@/lib/create-safe-action";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
   const { userId, orgId } = await auth();
-  const user = await currentUser();
 
-  if (!userId || !orgId || !user) {
+  if (!userId || !orgId) {
     return { error: "Unauthorized" };
   }
 
   const { text, cardId, boardId } = data;
   let comment;
+  let linkedComment;
 
   try {
     const card = await db.card.findUnique({ where: { id: cardId } });
@@ -26,23 +27,31 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       data: {
         text,
         cardId,
-        userId: user.id,
-        userImage: user.imageUrl,
-        userName: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Unknown User',
+        userId,
+        userImage: "",
+        userName: "Unknown User",
       },
     });
 
     if (card?.linkedCardId) {
-      await db.comment.create({
+      linkedComment = await db.comment.create({
         data: {
           text,
           cardId: card.linkedCardId,
-          userId: user.id,
-          userImage: user.imageUrl,
-          userName: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Unknown User',
+          userId,
+          userImage: "",
+          userName: "Unknown User",
         },
       });
     }
+
+    await inngest.send({
+      name: "app/comment.update_user",
+      data: {
+        commentIds: [comment.id, linkedComment?.id].filter(Boolean) as string[],
+        userId,
+      }
+    });
   } catch (error) {
     return { error: "Failed to create." };
   }

@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider      = "postgresql"
   url           = env("DATABASE_URL")
+  directUrl     = env("DIRECT_URL")
   relationMode  = "prisma"
 }
 
@@ -128,6 +129,8 @@ model Card {
 
   linkedCardId String?
 
+  notifications Notification[]
+
   @@index([listId])
 }
 
@@ -213,3 +216,19 @@ model AuditLog {
   updatedAt   DateTime    @updatedAt
 }
 
+model Notification {
+  id               String   @id @default(uuid())
+  taskId           String
+  assignedById     String
+  assignedToId     String
+  channel          String   @default("discord") 
+  status           String   @default("pending") // pending, sending, sent, failed
+  attempts         Int      @default(0)
+  createdAt        DateTime @default(now())
+  sentAt           DateTime?
+  failedAt         DateTime?
+
+  card             Card     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@index([taskId])
+}

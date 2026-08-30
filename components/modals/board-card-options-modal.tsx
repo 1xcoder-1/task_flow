@@ -65,7 +65,6 @@ export const BoardCardOptionsModal = ({ board }: BoardCardOptionsModalProps) => 
           aria-label="Card Options"
           onClick={(e) => {
             e.stopPropagation();
-            e.preventDefault();
           }}
           className="absolute top-2 right-2 p-1.5 text-white hover:bg-white/30 bg-black/30 rounded-md transition flex-shrink-0 z-50"
         >

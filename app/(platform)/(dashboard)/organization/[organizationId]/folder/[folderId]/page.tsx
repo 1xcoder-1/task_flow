@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, User2 } from "lucide-react";
 
 import { db } from "@/lib/db";
+import { inngest } from "@/inngest/client";
 import { FolderAuthWrapper } from "./_components/folder-auth-wrapper";
 import { YearFolderList } from "./_components/year-folder-list";
 import { BoardCardOptionsModal } from "@/components/modals/board-card-options-modal";
@@ -67,105 +68,13 @@ const FolderIdPage = async ({ params }: FolderIdPageProps) => {
   }
   
   if (folder && folder.title !== "Important") {
-    const currentYear = new Date().getFullYear().toString();
-    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-    const currentDay = new Date().getDate().toString();
-
-    // Fast path: check if the folders already exist before doing any expensive AuditLog queries
-    let yearFolder = await db.yearFolder.findFirst({
-      where: { folderId: folder.id, title: currentYear }
+    await inngest.send({
+      name: "app/folder.init",
+      data: {
+        orgId: organizationId,
+        folderId: folder.id,
+      },
     });
-    
-    let monthFolder = yearFolder ? await db.monthFolder.findFirst({
-      where: { yearFolderId: yearFolder.id, title: currentMonth }
-    }) : null;
-    
-    let dayFolder = monthFolder ? await db.dayFolder.findFirst({
-      where: { monthFolderId: monthFolder.id, title: currentDay }
-    }) : null;
-
-    // Only if the day folder doesn't exist, we check if it was created and deleted today
-    if (!dayFolder) {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const autoCreateLogTitle = `AutoCreate_Structure_${folder.id}_${currentYear}_${currentMonth}_${currentDay}`;
-
-      const alreadyCreatedToday = await db.auditLog.findFirst({
-        where: {
-          orgId: organizationId,
-          entityType: "FOLDER",
-          action: "CREATE",
-          entityTitle: autoCreateLogTitle,
-          createdAt: { gte: startOfDay }
-        }
-      });
-
-      if (!alreadyCreatedToday) {
-        if (!yearFolder) {
-          yearFolder = await db.yearFolder.create({
-            data: { title: currentYear, folderId: folder.id }
-          });
-        }
-
-        if (!monthFolder) {
-          monthFolder = await db.monthFolder.create({
-            data: { title: currentMonth, yearFolderId: yearFolder!.id }
-          });
-        }
-
-        dayFolder = await db.dayFolder.create({
-          data: { title: currentDay, monthFolderId: monthFolder!.id }
-        });
-        
-        // Auto-create a default board inside the new day folder
-        await db.board.create({
-          data: {
-            title: "Daily Tasks",
-            orgId: organizationId,
-            dayFolderId: dayFolder.id,
-            imageId: "default",
-            imageThumbUrl: "https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=400&auto=format&fit=crop",
-            imageFullUrl: "https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=1080&auto=format&fit=crop",
-            imageUserName: "System",
-            imageLinkHtml: "System",
-            lists: {
-              create: [
-                {
-                  title: "Pending",
-                  order: 1,
-                },
-                {
-                  title: "In Progress",
-                  order: 2,
-                },
-                {
-                  title: "Done",
-                  order: 3,
-                }
-              ]
-            }
-          }
-        });
-
-        try {
-          await db.auditLog.create({
-            data: {
-              orgId: organizationId,
-              action: "CREATE",
-              entityId: folder.id,
-              entityType: "FOLDER",
-              entityTitle: autoCreateLogTitle,
-              userId: userId || "system",
-              userImage: "",
-              userName: "System",
-            }
-          });
-        } catch (e) {
-          console.error("Failed to log auto-create", e);
-        }
-      }
-    }
   }
   const hasAccess = folder?.accesses.some((a) => a.userId === userId);
 

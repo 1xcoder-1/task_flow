@@ -28,92 +28,13 @@ export const BoardList = async () => {
   const impFolderExists = folders.some((f) => f.title === "Important");
 
   if (!impFolderExists) {
-    const currentYear = new Date().getFullYear().toString();
-    const currentMonth = new Date().toLocaleString('default', { month: 'long' });
-    const currentDay = new Date().getDate().toString();
-
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const autoCreateLogTitle = `AutoCreate_Important_${currentYear}_${currentMonth}_${currentDay}`;
-
-    const alreadyCreatedImportantToday = await db.auditLog.findFirst({
-      where: {
-        orgId,
-        entityType: "FOLDER",
-        action: "CREATE",
-        entityTitle: autoCreateLogTitle,
-        createdAt: { gte: startOfDay }
-      }
+    const { inngest } = await import("@/inngest/client");
+    await inngest.send({
+      name: "app/org.init",
+      data: { orgId }
     });
-
-    if (!alreadyCreatedImportantToday) {
-      const newImpFolder = await db.folder.create({
-        data: {
-          title: "Important",
-          orgId,
-        }
-      });
-      
-      const yearFolder = await db.yearFolder.create({
-        data: { title: currentYear, folderId: newImpFolder.id }
-      });
-      const monthFolder = await db.monthFolder.create({
-        data: { title: currentMonth, yearFolderId: yearFolder.id }
-      });
-      const dayFolder = await db.dayFolder.create({
-        data: { title: currentDay, monthFolderId: monthFolder.id }
-      });
-      await db.board.create({
-        data: {
-          title: "Imp Tasks daily",
-          orgId,
-          dayFolderId: dayFolder.id,
-          isImpBoard: true,
-          imageId: "default",
-          imageThumbUrl: "https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=400&auto=format&fit=crop",
-          imageFullUrl: "https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=1080&auto=format&fit=crop",
-          imageUserName: "System",
-          imageLinkHtml: "System",
-          lists: {
-            create: [
-              {
-                title: "Pending",
-                order: 1,
-              },
-              {
-                title: "In Progress",
-                order: 2,
-              },
-              {
-                title: "Done",
-                order: 3,
-              }
-            ]
-          }
-        }
-      });
-
-      try {
-        const { userId } = await auth();
-        await db.auditLog.create({
-          data: {
-            orgId,
-            action: "CREATE",
-            entityId: newImpFolder.id,
-            entityType: "FOLDER",
-            entityTitle: autoCreateLogTitle,
-            userId: userId || "system",
-            userImage: "",
-            userName: "System",
-          }
-        });
-      } catch (e) {
-        console.error(e);
-      }
-
-      folders = [newImpFolder, ...folders];
-    }
+    // We do NOT wait for it to finish or add it to folders array immediately
+    // so the UI can load in real-time.
   }
 
   return (

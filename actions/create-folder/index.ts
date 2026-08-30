@@ -7,8 +7,8 @@ import { db } from "@/lib/db";
 import { createSafeAction } from "@/lib/create-safe-action";
 import { InputType, ReturnType } from "@/actions/create-folder/types";
 import { CreateFolder } from "@/actions/create-folder/schema";
-import { createAuditLog } from "@/lib/create-audit-log";
 import { ACTION, ENTITY_TYPE } from "@prisma/client";
+import { inngest } from "@/inngest/client";
 
 import bcrypt from "bcryptjs";
 
@@ -40,12 +40,15 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       },
     });
 
-    // create new activity log
-    await createAuditLog({
-      entityId: folder.id,
-      entityTitle: folder.title,
-      entityType: ENTITY_TYPE.FOLDER,
-      action: ACTION.CREATE,
+    // Fire Inngest event to auto-generate year/month/day folders and audit log
+    await inngest.send({
+      name: "app/folder.create",
+      data: {
+        orgId,
+        folderId: folder.id,
+        folderTitle: folder.title,
+        userId: userId,
+      },
     });
   } catch (error) {
     return {

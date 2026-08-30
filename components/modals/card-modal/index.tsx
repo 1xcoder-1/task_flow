@@ -495,13 +495,13 @@ export const CardModal = () => {
 
   // --- Handlers ---
   const onTitleBlur = () => {
-    if (title === cardData?.title) return;
-    executeUpdateCard({ id: cardData!.id, boardId: params.boardId as string, title });
+    if (!cardData || title === cardData.title) return;
+    executeUpdateCard({ id: cardData.id, boardId: params.boardId as string, title });
   };
 
   const onDescriptionBlur = () => {
-    if (description === cardData?.description) return;
-    executeUpdateCard({ id: cardData!.id, boardId: params.boardId as string, description });
+    if (!cardData || description === cardData.description) return;
+    executeUpdateCard({ id: cardData.id, boardId: params.boardId as string, description });
   };
 
   const onPriorityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
