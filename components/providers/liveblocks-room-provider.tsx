@@ -1,7 +1,8 @@
 "use client";
 
-import { RoomProvider } from "@liveblocks/react/suspense";
+import { RoomProvider, ClientSideSuspense } from "@liveblocks/react/suspense";
 import { PropsWithChildren } from "react";
+import { Loader2 } from "lucide-react";
 
 export const LiveblocksRoomProvider = ({
   children,

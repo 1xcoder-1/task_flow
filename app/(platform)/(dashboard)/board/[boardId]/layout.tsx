@@ -3,6 +3,8 @@ import { auth } from "@clerk/nextjs/server";;
 
 import { BoardNavbar } from "./_components/board-navbar";
 import { db } from "@/lib/db";
+import { LiveblocksAppProvider } from "@/components/providers/liveblocks-provider";
+import { LiveblocksRoomProvider } from "@/components/providers/liveblocks-room-provider";
 
 export async function generateMetadata({
   params,
@@ -46,14 +48,17 @@ const BoardIdLayout = async ({
   if (!board) notFound();
 
   return (
-    <div
-      style={{ backgroundImage: `url(${board.imageFullUrl})` }}
-      className="relative h-full bg-no-repeat bg-cover bg-center"
-    >
-      <BoardNavbar data={board} />
-      <div aria-hidden className="absolute inset-0 bg-black/10" />
-      <main className="relative pt-28 h-full">{children}</main>
-    </div>
+    <LiveblocksAppProvider>
+      <LiveblocksRoomProvider roomId={boardId}>
+        <div
+          style={{ backgroundImage: `url(${board.imageFullUrl})` }}
+          className="relative h-full bg-no-repeat bg-cover bg-center"
+        >
+          <div aria-hidden className="absolute inset-0 bg-black/10" />
+          <main className="relative h-full">{children}</main>
+        </div>
+      </LiveblocksRoomProvider>
+    </LiveblocksAppProvider>
   );
 };
 

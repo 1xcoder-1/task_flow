@@ -8,6 +8,7 @@ import { InputType, ReturnType } from "./types";
 import { DeleteFolder } from "./schema";
 import { createAuditLog } from "@/lib/create-audit-log";
 import { ACTION, ENTITY_TYPE } from "@prisma/client";
+import { liveblocks } from "@/lib/liveblocks-server";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
   const { userId, orgId, orgRole } = await auth();
@@ -46,6 +47,15 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     return {
       error: "Failed to delete team folder.",
     };
+  }
+
+  try {
+    await liveblocks.broadcastEvent(orgId, {
+      type: "FOLDER_DELETED",
+      data: JSON.parse(JSON.stringify(folder)),
+    });
+  } catch (error) {
+    console.error("Liveblocks broadcast failed", error);
   }
 
   revalidatePath(`/organization/${orgId}`);

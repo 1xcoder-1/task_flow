@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { Logo } from "@/components/logo";
 import { MobileSidebar } from "./mobile-sidebar";
+import { NotificationPopover } from "@/components/notification-popover";
 
 import { auth } from "@clerk/nextjs/server";
 
@@ -26,6 +27,7 @@ export const Navbar = async () => {
       </div>
 
       <div className="ml-auto flex items-center gap-x-2">
+        <NotificationPopover />
         <ClerkLoading>
           <Skeleton className="h-10 w-40" />
           <Skeleton className="h-10 w-10 rounded-full" />

@@ -9,6 +9,7 @@ import { InputType, ReturnType } from "@/actions/create-folder/types";
 import { CreateFolder } from "@/actions/create-folder/schema";
 import { ACTION, ENTITY_TYPE } from "@prisma/client";
 import { inngest } from "@/inngest/client";
+import { liveblocks } from "@/lib/liveblocks-server";
 
 import bcrypt from "bcryptjs";
 
@@ -54,6 +55,15 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     return {
       error: "Failed to create",
     };
+  }
+
+  try {
+    await liveblocks.broadcastEvent(orgId, {
+      type: "FOLDER_CREATED",
+      data: JSON.parse(JSON.stringify(folder)),
+    });
+  } catch (error) {
+    console.error("Liveblocks broadcast failed", error);
   }
 
   revalidatePath(`/organization/${orgId}`);

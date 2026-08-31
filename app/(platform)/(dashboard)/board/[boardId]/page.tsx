@@ -1,7 +1,7 @@
-import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";;
+import { notFound, redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 
-import { ListContainer } from "./_components/list-container";
+import { BoardViewContainer } from "./_components/board-view-container";
 import { db } from "@/lib/db";
 
 type BoardIdPageProps = {
@@ -15,7 +15,16 @@ const BoardIdPage = async ({ params }: BoardIdPageProps) => {
 
   if (!orgId) redirect("/select-org");
 
-  const lists = await db.list.findMany({
+  const board = await db.board.findUnique({
+    where: {
+      id: boardId,
+      orgId,
+    },
+  });
+
+  if (!board) notFound();
+
+  const lists = await (db.list as any).findMany({
     where: {
       boardId: boardId,
       board: {
@@ -28,10 +37,15 @@ const BoardIdPage = async ({ params }: BoardIdPageProps) => {
           order: "asc",
         },
         include: {
-          comments: { select: { id: true } },
-          attachments: { select: { id: true } },
+          comments: true,
+          attachments: true,
           assignments: true,
-        }
+          tags: {
+            include: {
+              tag: true,
+            },
+          },
+        },
       },
     },
     orderBy: {
@@ -39,15 +53,7 @@ const BoardIdPage = async ({ params }: BoardIdPageProps) => {
     },
   });
 
-  const board = await db.board.findUnique({
-    where: { id: boardId }
-  });
-
-  return (
-    <div className="p-4 h-full overflow-x-auto board-scrollbar">
-      <ListContainer boardId={boardId} data={lists} isImpBoard={board?.isImpBoard || false} />
-    </div>
-  );
+  return <BoardViewContainer board={board} lists={lists as any} />;
 };
 
 export default BoardIdPage;

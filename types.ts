@@ -5,6 +5,7 @@ export type CardWithRelations = Card & {
   attachments?: Attachment[];
   assignments?: CardAssignment[];
   subtasks?: Subtask[];
+  tags?: any[];
 };
 
 export type ListWithCards = List & { cards: CardWithRelations[] };

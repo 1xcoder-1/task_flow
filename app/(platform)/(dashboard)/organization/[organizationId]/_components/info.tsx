@@ -6,8 +6,13 @@ import { ClerkLoaded, useOrganization } from "@clerk/nextjs";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Info = () => {
-  const { organization, isLoaded } = useOrganization();
+  const { organization, membership, isLoaded } = useOrganization();
   if (!isLoaded) return <Info.Skeleton />;
+
+  // Only show Organization Logo & Name to Admin users
+  if (membership?.role !== "org:admin") {
+    return null;
+  }
 
   return (
     <div className="flex items-center gap-x-6 p-4 bg-white/50 rounded-xl border border-slate-100 shadow-sm backdrop-blur-sm mr-4 md:mr-0 -ml-3">

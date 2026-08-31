@@ -1,14 +1,30 @@
 "use client";
 
 import { LiveblocksProvider } from "@liveblocks/react/suspense";
-import { PropsWithChildren } from "react";
+import { PropsWithChildren, useCallback } from "react";
 
 export const LiveblocksAppProvider = ({ children }: PropsWithChildren) => {
-  // We use a fallback key to prevent crashes during dev, but you MUST replace this with your real key in .env
-  const apiKey = process.env.NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_KEY || "pk_dev_YOUR_KEY_HERE";
-  
+  const authEndpoint = useCallback(async (room?: string) => {
+    try {
+      const response = await fetch("/api/liveblocks-auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ room }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Auth failed with status ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.warn("Liveblocks client auth fetch error:", error);
+      throw error;
+    }
+  }, []);
+
   return (
-    <LiveblocksProvider publicApiKey={apiKey}>
+    <LiveblocksProvider authEndpoint={authEndpoint}>
       {children}
     </LiveblocksProvider>
   );

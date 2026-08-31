@@ -11,7 +11,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   noStore();
   const { userId, orgId, orgRole } = await auth();
 
-  if (!userId || !orgId || data.orgId !== orgId || orgRole !== "org:admin") {
+  if (!userId || !orgId || data.orgId !== orgId) {
     return {
       error: "Unauthorized",
     };

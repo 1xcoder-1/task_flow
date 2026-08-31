@@ -8,7 +8,7 @@ export const sendNotification = inngest.createFunction(
     triggers: [{ event: "app/notification.send" }]
   },
   async ({ event, step }) => {
-    // 1. Send the Discord notification
+    // 1. Try to send the Discord notification — failure is non-fatal
     await step.run("send-to-discord", async () => {
       let assignedByName = "A teammate";
       if (event.data.assignedById) {
@@ -24,14 +24,19 @@ export const sendNotification = inngest.createFunction(
         }
       }
 
-      await sendDiscordNotification(
-        event.data.taskTitle,
-        event.data.assignedToName,
-        assignedByName
-      );
+      try {
+        await sendDiscordNotification(
+          event.data.taskTitle,
+          event.data.assignedToName,
+          assignedByName
+        );
+      } catch (e) {
+        // Discord is optional — log and continue so the in-app notification still works
+        console.error("Discord notification failed (non-fatal):", e);
+      }
     });
 
-    // 2. Update the notification record in DB as sent
+    // 2. Always update the notification record to 'sent' (in-app delivery succeeded)
     await step.run("update-notification-status", async () => {
       await db.notification.update({
         where: { id: event.data.notificationId },
@@ -42,6 +47,7 @@ export const sendNotification = inngest.createFunction(
     return { success: true };
   }
 );
+
 
 export const logActivity = inngest.createFunction(
   {

@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { DragDropContext, type DropResult, Droppable } from "@hello-pangea/dnd";
+import { useEventListener } from "@liveblocks/react/suspense";
 
 import { ListForm } from "./list-form";
 import { ListItem } from "./list-item";
+
 import type { ListWithCards } from "@/types";
 import { useAction } from "@/hooks/use-action";
 import { updateListOrder } from "@/actions/update-list-order";
 import { updateCardOrder } from "@/actions/update-card-order";
+import { useRouter } from "next/navigation";
+import { TagFilterBar } from "@/components/tag-filter-bar";
 
 type ListContainerProps = {
   data: ListWithCards[];
@@ -25,19 +29,52 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number) {
   return result;
 }
 
+const subscribeNoop = () => () => {};
+const getSnapshotClient = () => true;
+const getSnapshotServer = () => false;
+
 export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps) => {
-  const [isMounted, setIsMounted] = useState(false);
+  const router = useRouter();
+  const isMounted = useSyncExternalStore(
+    subscribeNoop,
+    getSnapshotClient,
+    getSnapshotServer
+  );
   const [orderedData, setOrderedData] = useState(data);
   const [prevData, setPrevData] = useState(data);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const [activeTagId, setActiveTagId] = useState<string | null>(null);
 
   if (data !== prevData) {
     setPrevData(data);
     setOrderedData(data);
   }
+
+  // Extract all unique tags on cards in this board
+  const allBoardTags = Array.from(
+    new Map(
+      orderedData
+        .flatMap((list) => list.cards || [])
+        .flatMap((card: any) => card.tags || [])
+        .filter((ct: any) => ct && (ct.tag || ct.id))
+        .map((ct: any) => [ct.tag?.id || ct.tagId || ct.id, ct.tag || ct])
+    ).values()
+  );
+
+  const displayData = activeTagId
+    ? orderedData.map((list) => ({
+      ...list,
+      cards: (list.cards || []).filter((card: any) =>
+        card.tags?.some((ct: any) => ct.tagId === activeTagId || ct.tag?.id === activeTagId)
+      ),
+    }))
+    : orderedData;
+
+  useEventListener(({ event }) => {
+    const customEvent = event as { type?: string; data?: any };
+    if (customEvent.type === "CARD_CREATED" || customEvent.type === "CARD_MOVED" || customEvent.type === "LIST_MOVED") {
+      router.refresh(); // Or optimistically apply event.data
+    }
+  });
 
   const { execute: executeUpdateListOrder } = useAction(updateListOrder, {
     onSuccess: (data) => {
@@ -56,6 +93,8 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
       toast.error(error);
     },
   });
+
+
 
   // Prevent rendering DND until mounted to fix Strict Mode hydration errors
   if (!isMounted) {
@@ -105,17 +144,17 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
       if (sourceListIndex === -1 || destListIndex === -1) return;
 
       // clone the lists and their cards to avoid direct mutation of state
-      const sourceList = { 
-        ...newOrderedData[sourceListIndex], 
-        cards: newOrderedData[sourceListIndex].cards ? [...newOrderedData[sourceListIndex].cards] : [] 
+      const sourceList = {
+        ...newOrderedData[sourceListIndex],
+        cards: newOrderedData[sourceListIndex].cards ? [...newOrderedData[sourceListIndex].cards] : []
       };
-      
-      const destinationList = sourceListIndex === destListIndex 
-        ? sourceList 
-        : { 
-            ...newOrderedData[destListIndex], 
-            cards: newOrderedData[destListIndex].cards ? [...newOrderedData[destListIndex].cards] : [] 
-          };
+
+      const destinationList = sourceListIndex === destListIndex
+        ? sourceList
+        : {
+          ...newOrderedData[destListIndex],
+          cards: newOrderedData[destListIndex].cards ? [...newOrderedData[destListIndex].cards] : []
+        };
 
       newOrderedData[sourceListIndex] = sourceList;
       newOrderedData[destListIndex] = destinationList;
@@ -132,7 +171,7 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
           ...card,
           order: i,
         }));
-        
+
         setOrderedData(newOrderedData);
 
         executeUpdateCardOrder({
@@ -173,25 +212,34 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
   };
 
   return (
-    <DragDropContext onDragEnd={onDragEnd}>
-      <Droppable droppableId="lists" type="list" direction="horizontal">
-        {(provided) => (
-          <ol
-            {...provided.droppableProps}
-            ref={provided.innerRef}
-            className="flex gap-x-3 h-full"
-          >
-            {orderedData.map((list, i) => (
-              <ListItem key={list.id} index={i} data={list} isImpBoard={isImpBoard} />
-            ))}
+    <div className="h-full w-full flex flex-col">
+      <TagFilterBar
+        tags={allBoardTags}
+        activeTagId={activeTagId}
+        onSelectTag={(tagId) => setActiveTagId(tagId)}
+      />
+      <div className="flex-1 overflow-x-auto p-4 pt-2">
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="lists" type="list" direction="horizontal">
+            {(provided) => (
+              <ol
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="flex gap-x-3 h-full"
+              >
+                {displayData.map((list, i) => (
+                  <ListItem key={list.id} index={i} data={list} isImpBoard={isImpBoard} />
+                ))}
 
-            {provided.placeholder}
+                {provided.placeholder}
 
-            <ListForm />
-            <div aria-hidden className="flex-shrink-0 w-1" />
-          </ol>
-        )}
-      </Droppable>
-    </DragDropContext>
+                <ListForm />
+                <div aria-hidden className="flex-shrink-0 w-1" />
+              </ol>
+            )}
+          </Droppable>
+        </DragDropContext>
+      </div>
+    </div>
   );
 };

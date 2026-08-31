@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { inngest } from "@/inngest/client";
 
 import { CreateComment } from "./schema";
@@ -16,11 +16,15 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     return { error: "Unauthorized" };
   }
 
-  const { text, cardId, boardId } = data;
+  const { text, cardId, boardId, mentionedUserIds } = data;
   let comment;
   let linkedComment;
 
   try {
+    const user = await currentUser();
+    const actorName = user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : "User";
+    const actorImage = user?.imageUrl || null;
+
     const card = await db.card.findUnique({ where: { id: cardId } });
 
     comment = await db.comment.create({
@@ -28,8 +32,8 @@ const handler = async (data: InputType): Promise<ReturnType> => {
         text,
         cardId,
         userId,
-        userImage: "",
-        userName: "Unknown User",
+        userImage: actorImage || "",
+        userName: actorName,
       },
     });
 
@@ -39,12 +43,13 @@ const handler = async (data: InputType): Promise<ReturnType> => {
           text,
           cardId: card.linkedCardId,
           userId,
-          userImage: "",
-          userName: "Unknown User",
+          userImage: actorImage || "",
+          userName: actorName,
         },
       });
     }
 
+    // Trigger user detail enrichment
     await inngest.send({
       name: "app/comment.update_user",
       data: {
@@ -52,7 +57,34 @@ const handler = async (data: InputType): Promise<ReturnType> => {
         userId,
       }
     });
+
+    // Handle @mentions: Create notifications for mentioned users
+    if (mentionedUserIds && mentionedUserIds.length > 0) {
+      const truncatedCardTitle = card?.title ? (card.title.length > 20 ? card.title.slice(0, 20) + "…" : card.title) : "task";
+      
+      const notificationPromises = mentionedUserIds
+        .filter((targetUserId) => targetUserId !== userId)
+        .map((targetUserId) =>
+          db.notification.create({
+            data: {
+              taskId: cardId,
+              assignedById: userId,
+              assignedToId: targetUserId,
+              channel: "in-app",
+              status: "sent",
+              title: "Mentioned in Comment",
+              message: `mentioned you in a comment on "${truncatedCardTitle}"`,
+              actorName,
+              actorImage,
+              linkUrl: `/board/${boardId}?cardId=${cardId}`,
+            },
+          })
+        );
+
+      await Promise.all(notificationPromises);
+    }
   } catch (error) {
+    console.error("Create comment error:", error);
     return { error: "Failed to create." };
   }
 

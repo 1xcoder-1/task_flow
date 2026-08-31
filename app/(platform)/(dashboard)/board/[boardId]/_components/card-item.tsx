@@ -9,6 +9,7 @@ import { useAction } from "@/hooks/use-action";
 import { updateCard } from "@/actions/update-card";
 import { toast } from "sonner";
 import type { CardWithRelations } from "@/types";
+import { TagBadge } from "@/components/tag-badge";
 
 type CardItemProps = {
   data: CardWithRelations;
@@ -27,7 +28,7 @@ const getPriorityDisplay = (priority?: string) => {
 export const CardItem = ({ data, index }: CardItemProps) => {
   const cardModal = useCardModal();
   
-  const cardData = data as CardWithRelations & { progress?: number, priority?: string, isActive?: boolean };
+  const cardData = data as any;
 
   const { execute } = useAction(updateCard, {
     onError: (error) => toast.error(error),
@@ -76,24 +77,33 @@ export const CardItem = ({ data, index }: CardItemProps) => {
               </h3>
             </div>
             {data.description && (
-               <p className="text-[13px] text-gray-500 line-clamp-2 leading-snug">
-                {data.description}
+              <p className="text-[13px] text-gray-500 line-clamp-2 leading-snug">
+                {data.description.replace(/<[^>]*>?/gm, '')}
               </p>
+            )}
+
+            {cardData.tags && cardData.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {cardData.tags.map((ct: any) => (
+                  <TagBadge key={ct.id || ct.tag?.id} name={ct.tag?.name || ct.name} color={ct.tag?.color || ct.color} />
+                ))}
+              </div>
             )}
           </div>
 
           {/* Avatars & Progress */}
           <div className="flex items-center justify-between mt-2">
             <div className="flex -space-x-1.5 overflow-hidden">
-              {assignments.map((assignment) => (
+              {assignments.map((assignment: any) => (
                 <Image 
                   key={assignment.id}
-                  className="inline-block h-6 w-6 rounded-full ring-2 ring-white" 
+                  className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover" 
                   src={assignment.userImage} 
-                  alt={assignment.userName} 
+                  alt={assignment.userName || "User avatar"} 
                   title={assignment.userName}
                   width={24}
                   height={24}
+                  unoptimized
                 />
               ))}
             </div>

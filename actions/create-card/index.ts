@@ -9,6 +9,7 @@ import { InputType, ReturnType } from "./types";
 import { db } from "@/lib/db";
 import { createSafeAction } from "@/lib/create-safe-action";
 import { createAuditLog } from "@/lib/create-audit-log";
+import { liveblocks } from "@/lib/liveblocks-server";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
   const { userId, orgId } = await auth();
@@ -97,6 +98,16 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     return {
       error: "Failed to create.",
     };
+  }
+
+  // Broadcast to liveblocks room for this board
+  try {
+    await liveblocks.broadcastEvent(boardId, {
+      type: "CARD_CREATED",
+      data: JSON.parse(JSON.stringify(card)),
+    });
+  } catch (error) {
+    console.error("Liveblocks broadcast failed", error);
   }
 
   revalidatePath(`/board/${boardId}`);

@@ -68,13 +68,17 @@ const FolderIdPage = async ({ params }: FolderIdPageProps) => {
   }
   
   if (folder && folder.title !== "Important") {
-    await inngest.send({
-      name: "app/folder.init",
-      data: {
-        orgId: organizationId,
-        folderId: folder.id,
-      },
-    });
+    try {
+      await inngest.send({
+        name: "app/folder.init",
+        data: {
+          orgId: organizationId,
+          folderId: folder.id,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to send inngest event:", error);
+    }
   }
   const hasAccess = folder?.accesses.some((a) => a.userId === userId);
 

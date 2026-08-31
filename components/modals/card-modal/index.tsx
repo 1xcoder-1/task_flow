@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useCardModal } from "@/hooks/use-card-modal";
@@ -10,6 +11,7 @@ import { Pencil, Calendar, Paperclip, CheckCircle2, Circle, Plus, Send, MessageS
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useOrganization } from "@clerk/nextjs";
 import { useAction } from "@/hooks/use-action";
 import { updateCard } from "@/actions/update-card";
@@ -23,9 +25,14 @@ import { createAttachment } from "@/actions/create-attachment";
 import { deleteAttachment } from "@/actions/delete-attachment";
 import { createAssignment } from "@/actions/create-assignment";
 import { deleteAssignment } from "@/actions/delete-assignment";
+import { createTag } from "@/actions/create-tag";
+import { toggleCardTag } from "@/actions/toggle-card-tag";
+import { getTags } from "@/actions/get-tags";
+import { TagBadge } from "@/components/tag-badge";
+import { Tag as TagIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useParams } from "next/navigation";
-import Image from "next/image";
+import { useParams, useSearchParams } from "next/navigation";
+import { RichTextEditor } from "@/components/rich-text-editor";
 
 const HeaderSection = ({ title, setTitle, onTitleBlur, description, setDescription, onDescriptionBlur }: any) => (
   <div className="space-y-3">
@@ -37,18 +44,22 @@ const HeaderSection = ({ title, setTitle, onTitleBlur, description, setDescripti
       className="text-2xl font-bold text-gray-900 leading-tight w-full focus:outline-none focus:ring-1 focus:ring-gray-300 border border-gray-200 rounded-lg px-3 py-2 bg-transparent"
       placeholder="Card Title"
     />
-    <textarea
-      aria-label="Card Description"
-      value={description}
-      onChange={(e) => setDescription(e.target.value)}
-      onBlur={onDescriptionBlur}
-      className="text-sm text-gray-700 w-full resize-none focus:outline-none focus:ring-1 focus:ring-gray-300 border border-gray-200 rounded-lg px-3 py-2 bg-transparent min-h-[80px]"
-      placeholder="Add a more detailed description..."
-    />
+    <div className="space-y-1">
+      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</div>
+      <RichTextEditor
+        value={description}
+        onChange={(val) => setDescription(val)}
+        onBlur={(val) => {
+          setDescription(val);
+          onDescriptionBlur(val);
+        }}
+        placeholder="Add a detailed description using bold, lists, formatting..."
+      />
+    </div>
   </div>
 );
 
-const MetadataSection = ({ cardData, priority, onPriorityChange, executeUpdateCard, params, memberships, isAssigneeOpen, setIsAssigneeOpen, onToggleAssignee }: any) => (
+const MetadataSection = ({ cardData, priority, onPriorityChange, executeUpdateCard, params, memberships, isAssigneeOpen, setIsAssigneeOpen, onToggleAssignee, isTagOpen, setIsTagOpen, orgTags, newTagName, setNewTagName, newTagColor, setNewTagColor, onCreateNewTag, onToggleTag }: any) => (
   <div className="grid grid-cols-[100px_1fr] gap-y-4 text-sm items-center">
     <div className="text-gray-500">Priority</div>
     <div>
@@ -107,7 +118,7 @@ const MetadataSection = ({ cardData, priority, onPriorityChange, executeUpdateCa
         </PopoverTrigger>
         <PopoverContent className="w-60 p-2" align="start">
           <div className="text-xs font-semibold text-gray-600 mb-2 px-2">Assign members</div>
-          <div className="space-y-1">
+          <div className="space-y-1 max-h-52 overflow-y-auto custom-sidebar-scrollbar pr-1">
             {memberships?.data?.reduce((acc: any, mem: any) => {
               if (!mem.publicUserData) return acc;
               const isAssigned = cardData?.assignments?.some((a: any) => a.userId === mem.publicUserData!.userId);
@@ -147,6 +158,83 @@ const MetadataSection = ({ cardData, priority, onPriorityChange, executeUpdateCa
           </div>
         </PopoverContent>
       </Popover>
+    </div>
+
+    <div className="text-gray-500">Tags</div>
+    <div className="flex items-center gap-x-2 flex-wrap gap-y-1">
+      {cardData?.tags && cardData.tags.length > 0 ? (
+        cardData.tags.map((ct: any) => (
+          <TagBadge key={ct.id || ct.tag?.id} name={ct.tag?.name || ct.name} color={ct.tag?.color || ct.color} />
+        ))
+      ) : null}
+
+      <Dialog open={isTagOpen} onOpenChange={setIsTagOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="icon" className="h-6 w-6 rounded-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50">
+            <Plus className="h-3 w-3" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md p-5 bg-white border border-gray-200 shadow-xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-gray-800">Manage Card Tags</DialogTitle>
+          </DialogHeader>
+
+          <div className="flex flex-wrap gap-2 max-h-60 overflow-y-auto custom-sidebar-scrollbar my-2 p-1">
+            {orgTags.length === 0 ? (
+              <div className="w-full text-xs text-gray-400 text-center py-4">No tags created yet.</div>
+            ) : (
+              orgTags.map((tag: any) => {
+                const isAttached = cardData?.tags?.some((ct: any) => ct.tagId === tag.id || ct.tag?.id === tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => onToggleTag(tag.id)}
+                    className={`flex items-center gap-x-1.5 px-3 py-1.5 rounded-full border transition cursor-pointer text-xs ${
+                      isAttached
+                        ? "ring-2 ring-sky-500 ring-offset-1 font-semibold shadow-xs"
+                        : "opacity-80 hover:opacity-100"
+                    }`}
+                    style={{
+                      backgroundColor: `${tag.color}15`,
+                      borderColor: `${tag.color}40`,
+                      color: tag.color,
+                    }}
+                  >
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                    <span className="font-medium">{tag.name}</span>
+                    {isAttached && <Check className="h-3.5 w-3.5 ml-1" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="border-t pt-3 space-y-3">
+            <div className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Create New Tag</div>
+            <div className="flex items-center gap-x-2">
+              <input
+                aria-label="Tag Name"
+                type="text"
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                placeholder="Tag name..."
+                className="flex-1 text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+              />
+              <input
+                aria-label="Tag Color"
+                type="color"
+                value={newTagColor}
+                onChange={(e) => setNewTagColor(e.target.value)}
+                className="w-9 h-9 p-1 border rounded-lg cursor-pointer shrink-0"
+              />
+            </div>
+            <Button onClick={onCreateNewTag} size="sm" className="w-full h-9 text-xs rounded-lg font-medium">
+              Create Tag
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   </div>
 );
@@ -233,7 +321,7 @@ const AttachmentsSection = ({ cardData, isAddingLink, setIsAddingLink, linkUrl, 
         <div className="flex items-start gap-x-3">
           {attachment.type === "image" ? (
             <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden border border-gray-200 relative">
-              <Image src={attachment.url} alt="Attachment" fill sizes="40px" className="object-cover" />
+              <Image src={attachment.url} alt="Attachment" className="h-full w-full object-cover" width={40} height={40} unoptimized />
             </div>
           ) : attachment.type === "document" ? (
             <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
@@ -319,65 +407,174 @@ const AttachmentsSection = ({ cardData, isAddingLink, setIsAddingLink, linkUrl, 
   </div>
 );
 
-const CommentsSection = ({ cardData, commentText, setCommentText, onAddComment, onDeleteComment }: any) => (
-  <div className="space-y-4 pb-10">
-    <div className="flex items-center gap-x-2">
-      <MessageSquare className="h-4 w-4 text-gray-500" />
-      <h3 className="font-semibold text-gray-900">Comments</h3>
-      <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-xs font-medium text-gray-600">
-        {cardData?.comments?.length || 0}
-      </span>
-    </div>
+const renderCommentText = (text: string) => {
+  if (!text) return null;
+  // Match @Word or @Name patterns
+  const parts = text.split(/(@[A-Za-z0-9_]+(?:\s+[A-Za-z0-9_]+)?)/g);
+  return (
+    <span className="text-gray-700 font-normal">
+      {parts.map((part, i) => {
+        const key = `part-${part}-${i}`;
+        if (part.startsWith("@") && part.trim().length > 1) {
+          return (
+            <span key={key} className="font-semibold text-sky-700 bg-sky-100/80 border border-sky-200/80 px-1.5 py-0.5 rounded-md text-xs mx-0.5 inline-block">
+              {part}
+            </span>
+          );
+        }
+        return part;
+      })}
+    </span>
+  );
+};
 
-    <div className="flex items-center gap-x-2">
-      <input 
-        aria-label="Write a comment"
-        type="text"
-        value={commentText}
-        onChange={(e) => setCommentText(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter') onAddComment(); }}
-        placeholder="Write a comment..." 
-        className="flex-1 text-sm px-4 py-2 border rounded-xl focus:outline-none focus:ring-1 focus:ring-gray-300"
-      />
-      <Button onClick={onAddComment} className="h-9 w-9 p-0 rounded-xl bg-gray-500 hover:bg-gray-600">
-        <Send className="h-4 w-4" />
-      </Button>
-    </div>
+const CommentsSection = ({ cardData, memberships, onAddCommentWithMentions, onDeleteComment }: any) => {
+  const [commentText, setCommentText] = useState("");
+  const mentionedUserIdsRef = useRef<string[]>([]);
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState("");
 
-    {cardData?.comments?.map((comment: any) => (
-      <div key={comment.id} className="group flex items-start justify-between gap-x-3 pt-2">
-        <div className="flex items-start gap-x-3">
-          <Avatar className="h-8 w-8 mt-1">
-            <AvatarImage src={comment.userImage} />
-            <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col gap-1">
-            <div className="flex items-baseline gap-x-2">
-              <span className="text-sm font-semibold text-gray-900">{comment.userName}</span>
-              <span className="text-[11px] text-gray-500">
-                {new Date(comment.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "numeric", timeZone: "UTC" })}
-              </span>
-            </div>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              {comment.text || (comment as any).content}
-            </p>
-          </div>
-        </div>
-        <Button onClick={() => onDeleteComment(comment.id)} variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition text-red-500">
-          <Trash2 className="h-3 w-3" />
-        </Button>
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCommentText(val);
+
+    const lastAtIndex = val.lastIndexOf("@");
+    if (lastAtIndex !== -1 && lastAtIndex === val.length - 1) {
+      setShowMentionDropdown(true);
+      setMentionFilter("");
+    } else if (lastAtIndex !== -1 && !val.slice(lastAtIndex).includes(" ")) {
+      setShowMentionDropdown(true);
+      setMentionFilter(val.slice(lastAtIndex + 1).toLowerCase());
+    } else {
+      setShowMentionDropdown(false);
+    }
+  };
+
+  const handleSelectMember = (userId: string, name: string) => {
+    const lastAtIndex = commentText.lastIndexOf("@");
+    const prefix = commentText.slice(0, lastAtIndex);
+    const newText = `${prefix}@${name} `;
+    setCommentText(newText);
+    if (!mentionedUserIdsRef.current.includes(userId)) {
+      mentionedUserIdsRef.current.push(userId);
+    }
+    setShowMentionDropdown(false);
+  };
+
+  const handleSubmit = () => {
+    if (!commentText.trim()) return;
+    onAddCommentWithMentions(commentText, mentionedUserIdsRef.current);
+    setCommentText("");
+    mentionedUserIdsRef.current = [];
+    setShowMentionDropdown(false);
+  };
+
+  const membersList = memberships?.data || [];
+  const filteredMembers = membersList.filter((m: any) => {
+    const fullName = `${m.publicUserData?.firstName || ""} ${m.publicUserData?.lastName || ""}`.toLowerCase();
+    return fullName.includes(mentionFilter);
+  });
+
+  return (
+    <div className="space-y-4 pb-10">
+      <div className="flex items-center gap-x-2">
+        <MessageSquare className="h-4 w-4 text-gray-500" />
+        <h3 className="font-semibold text-gray-900">Comments</h3>
+        <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-xs font-medium text-gray-600">
+          {cardData?.comments?.length || 0}
+        </span>
       </div>
-    ))}
-  </div>
-);
+
+      <div className="relative">
+        <div className="flex items-center gap-x-2">
+          <input 
+            aria-label="Write a comment (@ to mention)"
+            type="text"
+            value={commentText}
+            onChange={handleTextChange}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            placeholder="Write a comment (@ to mention team members)..." 
+            className="flex-1 text-sm px-4 py-2 border rounded-xl focus:outline-none focus:ring-1 focus:ring-gray-300"
+          />
+          <Button onClick={handleSubmit} className="h-9 w-9 p-0 rounded-xl bg-gray-500 hover:bg-gray-600">
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Floating @Mention Member Dropdown */}
+        {showMentionDropdown && filteredMembers.length > 0 && (
+          <div className="absolute left-0 bottom-full mb-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-1.5 max-h-48 overflow-y-auto custom-sidebar-scrollbar">
+            <div className="text-[11px] font-semibold text-gray-400 px-2 py-1 uppercase tracking-wider">Mention member</div>
+            {filteredMembers.map((mem: any) => {
+              if (!mem.publicUserData) return null;
+              const name = `${mem.publicUserData.firstName || "User"} ${mem.publicUserData.lastName || ""}`.trim();
+              return (
+                <div
+                  key={mem.publicUserData.userId}
+                  onClick={() => handleSelectMember(mem.publicUserData.userId!, name)}
+                  className="flex items-center gap-x-2 px-2 py-1.5 hover:bg-sky-50 rounded-lg cursor-pointer transition text-sm text-gray-700"
+                >
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={mem.publicUserData.imageUrl} />
+                    <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span className="font-medium text-xs">{name}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {cardData?.comments?.map((comment: any) => (
+        <div key={comment.id} className="group flex items-start justify-between gap-x-3 pt-2">
+          <div className="flex items-start gap-x-3">
+            <Avatar className="h-8 w-8 mt-1">
+              <AvatarImage src={comment.userImage} />
+              <AvatarFallback>{(comment.userName || "U").charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-baseline gap-x-2">
+                <span className="text-sm font-semibold text-gray-900">{comment.userName}</span>
+                <span className="text-[11px] text-gray-500">
+                  {new Date(comment.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "numeric", timeZone: "UTC" })}
+                </span>
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {renderCommentText(comment.text || (comment as any).content)}
+              </p>
+            </div>
+          </div>
+          <Button onClick={() => onDeleteComment(comment.id)} variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition text-red-500">
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export const CardModal = () => {
   const queryClient = useQueryClient();
   const params = useParams();
   
+  const searchParams = useSearchParams();
   const id = useCardModal((state) => state.id);
   const isOpen = useCardModal((state) => state.isOpen);
+  const onOpen = useCardModal((state) => state.onOpen);
   const onClose = useCardModal((state) => state.onClose);
+
+  useEffect(() => {
+    const cardIdFromUrl = searchParams?.get("cardId");
+    if (cardIdFromUrl) {
+      onOpen(cardIdFromUrl);
+    }
+  }, [searchParams, onOpen]);
 
   const { data: cardData } = useQuery<CardWithList>({
     queryKey: ["card", id],
@@ -389,13 +586,36 @@ export const CardModal = () => {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Low");
   const [subtaskTitle, setSubtaskTitle] = useState("");
-  const [commentText, setCommentText] = useState("");
 
   const [isAddingLink, setIsAddingLink] = useState(false);
   const [isAssigneeOpen, setIsAssigneeOpen] = useState(false);
+  const [isTagOpen, setIsTagOpen] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState("#3b82f6");
   const [linkUrl, setLinkUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: orgTags = [] } = useQuery<any[]>({
+    queryKey: ["org-tags"],
+    queryFn: () => getTags(),
+  });
+
+  const { execute: executeCreateTag } = useAction(createTag, {
+    onSuccess: () => {
+      toast.success("Tag created!");
+      setNewTagName("");
+      queryClient.invalidateQueries({ queryKey: ["org-tags"] });
+    },
+    onError: (error) => toast.error(error),
+  });
+
+  const { execute: executeToggleCardTag } = useAction(toggleCardTag, {
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["card", id] });
+    },
+    onError: (error) => toast.error(error),
+  });
 
   // Sync state when data loads
   useEffect(() => {
@@ -409,11 +629,13 @@ export const CardModal = () => {
   const { memberships } = useOrganization({ memberships: { pageSize: 10 } });
 
   // --- Actions ---
-  const { execute: executeUpdateCard } = useAction(updateCard, {
+  const { execute: executeUpdateCard, isLoading: isUpdatingCard } = useAction(updateCard, {
     onSuccess: () => {
-      toast.success("Card updated");
+      toast.success("Card updated in real time!");
       queryClient.invalidateQueries({ queryKey: ["card", id] });
+      queryClient.invalidateQueries({ queryKey: ["board", params.boardId] });
       queryClient.invalidateQueries({ queryKey: ["org-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["user-tasks"] });
     },
     onError: (error) => toast.error(error),
   });
@@ -453,7 +675,6 @@ export const CardModal = () => {
   const { execute: executeCreateComment } = useAction(createComment, {
     onSuccess: () => {
       toast.success("Comment added");
-      setCommentText("");
       queryClient.invalidateQueries({ queryKey: ["card", id] });
     },
     onError: (error) => toast.error(error),
@@ -484,12 +705,18 @@ export const CardModal = () => {
   });
 
   const { execute: executeCreateAssignment } = useAction(createAssignment, {
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["card", id] }),
+    onSuccess: () => {
+      toast.success("Member assigned! They will be notified.");
+      queryClient.invalidateQueries({ queryKey: ["card", id] });
+    },
     onError: (error) => toast.error(error),
   });
 
   const { execute: executeDeleteAssignment } = useAction(deleteAssignment, {
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["card", id] }),
+    onSuccess: () => {
+      toast.success("Member unassigned.");
+      queryClient.invalidateQueries({ queryKey: ["card", id] });
+    },
     onError: (error) => toast.error(error),
   });
 
@@ -499,9 +726,10 @@ export const CardModal = () => {
     executeUpdateCard({ id: cardData.id, boardId: params.boardId as string, title });
   };
 
-  const onDescriptionBlur = () => {
-    if (!cardData || description === cardData.description) return;
-    executeUpdateCard({ id: cardData.id, boardId: params.boardId as string, description });
+  const onDescriptionBlur = (newDesc?: string) => {
+    const finalDesc = newDesc !== undefined ? newDesc : description;
+    if (!cardData || finalDesc === cardData.description) return;
+    executeUpdateCard({ id: cardData.id, boardId: params.boardId as string, description: finalDesc });
   };
 
   const onPriorityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -522,11 +750,6 @@ export const CardModal = () => {
 
   const onDeleteSubtask = (subtaskId: string) => {
     executeDeleteSubtask({ id: subtaskId, boardId: params.boardId as string });
-  };
-
-  const onAddComment = () => {
-    if (!commentText.trim() || !cardData) return;
-    executeCreateComment({ text: commentText, cardId: cardData.id, boardId: params.boardId as string });
   };
 
   const onDeleteComment = (commentId: string) => {
@@ -612,7 +835,7 @@ export const CardModal = () => {
           </div>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        <div className="flex-1 overflow-y-auto custom-sidebar-scrollbar p-6 space-y-8">
           <HeaderSection
             title={title}
             setTitle={setTitle}
@@ -631,6 +854,21 @@ export const CardModal = () => {
             isAssigneeOpen={isAssigneeOpen}
             setIsAssigneeOpen={setIsAssigneeOpen}
             onToggleAssignee={onToggleAssignee}
+            isTagOpen={isTagOpen}
+            setIsTagOpen={setIsTagOpen}
+            orgTags={orgTags}
+            newTagName={newTagName}
+            setNewTagName={setNewTagName}
+            newTagColor={newTagColor}
+            setNewTagColor={setNewTagColor}
+            onCreateNewTag={() => {
+              if (!newTagName.trim()) return;
+              executeCreateTag({ name: newTagName, color: newTagColor });
+            }}
+            onToggleTag={(tagId: string) => {
+              if (!cardData) return;
+              executeToggleCardTag({ cardId: cardData.id, tagId, boardId: params.boardId as string });
+            }}
           />
           <div className="w-full h-px bg-gray-100" />
           <SubtasksSection
@@ -658,9 +896,16 @@ export const CardModal = () => {
           <div className="w-full h-px bg-gray-100" />
           <CommentsSection
             cardData={cardData}
-            commentText={commentText}
-            setCommentText={setCommentText}
-            onAddComment={onAddComment}
+            memberships={memberships}
+            onAddCommentWithMentions={(text: string, mentionedUserIds: string[]) => {
+              if (!text.trim() || !cardData) return;
+              executeCreateComment({
+                text,
+                cardId: cardData.id,
+                boardId: params.boardId as string,
+                mentionedUserIds,
+              });
+            }}
             onDeleteComment={onDeleteComment}
           />
         </div>

@@ -41,6 +41,11 @@ export async function GET(
         subtasks: {
           orderBy: { createdAt: "asc" }
         },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
     });
 

@@ -130,8 +130,32 @@ model Card {
   linkedCardId String?
 
   notifications Notification[]
+  tags        CardTag[]
 
   @@index([listId])
+}
+
+model Tag {
+  id        String    @id @default(uuid())
+  name      String
+  color     String    // e.g. "#ef4444"
+  orgId     String
+  cards     CardTag[]
+  createdAt DateTime  @default(now())
+
+  @@index([orgId])
+}
+
+model CardTag {
+  id     String @id @default(uuid())
+  cardId String
+  card   Card   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, tagId])
+  @@index([cardId])
+  @@index([tagId])
 }
 
 model Subtask {
@@ -218,17 +242,28 @@ model AuditLog {
 
 model Notification {
   id               String   @id @default(uuid())
-  taskId           String
+  taskId           String?
   assignedById     String
   assignedToId     String
+  
+  // existing fields (can be deprecated or kept for backward compatibility)
   channel          String   @default("discord") 
   status           String   @default("pending") // pending, sending, sent, failed
   attempts         Int      @default(0)
-  createdAt        DateTime @default(now())
   sentAt           DateTime?
   failedAt         DateTime?
+  
+  // New in-app notification fields
+  isRead           Boolean  @default(false)
+  title            String?
+  message          String?  @db.Text
+  actorName        String?
+  actorImage       String?  @db.Text
+  linkUrl          String?  @db.Text
+  
+  createdAt        DateTime @default(now())
 
-  card             Card     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  card             Card?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   
   @@index([taskId])
 }
