@@ -2,6 +2,7 @@ import { Logo } from "@/components/logo";
 import { MobileSidebar } from "./mobile-sidebar";
 import { NotificationPopover } from "@/components/notification-popover";
 import { NavbarClerkControls } from "./navbar-clerk-controls";
+import { CommandPalette } from "@/components/command-palette";
 
 import { auth } from "@clerk/nextjs/server";
 
@@ -18,7 +19,8 @@ export const Navbar = async () => {
         </div>
       </div>
 
-      <div className="ml-auto flex items-center gap-x-2">
+      <div className="ml-auto flex items-center gap-x-3">
+        <CommandPalette />
         <NotificationPopover />
         <NavbarClerkControls isAdmin={isAdmin} />
       </div>

@@ -18,7 +18,7 @@ export const updateCommentUser = inngest.createFunction(
         const user = await client.users.getUser(event.data.userId);
         if (user) {
           userImage = user.imageUrl || "";
-          userName = `${user.firstName || ""}${user.lastName ? ` ${user.lastName}` : ''}`.trim() || "Unknown User";
+          userName = `${user.firstName || ""}${user.lastName ? ` ${user.lastName}` : ''}`.trim() || user.username || user.primaryEmailAddress?.emailAddress || "User";
         }
       } catch (e) {
         console.error("Failed to fetch user from clerk for comment update", e);

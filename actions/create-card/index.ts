@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { ACTION, ENTITY_TYPE } from "@prisma/client";
-import { auth } from "@clerk/nextjs/server";;
+import { auth } from "@clerk/nextjs/server";
 
 import { CreateCard } from "./schema";
 import { InputType, ReturnType } from "./types";
@@ -10,6 +11,7 @@ import { db } from "@/lib/db";
 import { createSafeAction } from "@/lib/create-safe-action";
 import { createAuditLog } from "@/lib/create-audit-log";
 import { liveblocks } from "@/lib/liveblocks-server";
+import { statusFromListTitle } from "@/lib/card-status";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
   const { userId, orgId } = await auth();
@@ -22,8 +24,6 @@ const handler = async (data: InputType): Promise<ReturnType> => {
 
   const { title, boardId, listId, targetListId } = data;
 
-  let card;
-
   try {
     const list = await db.list.findUnique({
       where: {
@@ -32,6 +32,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
           orgId,
         },
       },
+      select: { id: true, title: true },
     });
 
     if (!list) {
@@ -48,10 +49,12 @@ const handler = async (data: InputType): Promise<ReturnType> => {
 
     const newOrder = lastCard ? lastCard.order + 1 : 1;
     let linkedCardId = null;
+    const listStatus = statusFromListTitle(list.title);
 
     if (targetListId) {
       const targetList = await db.list.findUnique({
         where: { id: targetListId, board: { orgId } },
+        select: { id: true, title: true },
       });
       if (targetList) {
         const lastTargetCard = await db.card.findFirst({
@@ -60,61 +63,64 @@ const handler = async (data: InputType): Promise<ReturnType> => {
           select: { order: true },
         });
         const newTargetOrder = lastTargetCard ? lastTargetCard.order + 1 : 1;
+        const targetStatus = statusFromListTitle(targetList.title);
         const targetCard = await db.card.create({
           data: {
             title,
             listId: targetListId,
             order: newTargetOrder,
+            status: targetStatus.status,
+            isActive: targetStatus.isActive,
           },
         });
         linkedCardId = targetCard.id;
-        
-        await createAuditLog({
-          entityId: targetCard.id,
-          entityTitle: targetCard.title,
-          entityType: ENTITY_TYPE.CARD,
-          action: ACTION.CREATE,
-        });
       }
     }
 
-    card = await db.card.create({
+    const card = await db.card.create({
       data: {
         title,
         listId,
         order: newOrder,
         linkedCardId,
+        status: listStatus.status,
+        isActive: listStatus.isActive,
       },
     });
 
-    // create new activity log
-    await createAuditLog({
-      entityId: card.id,
-      entityTitle: card.title,
-      entityType: ENTITY_TYPE.CARD,
-      action: ACTION.CREATE,
+    after(() => {
+      Promise.all([
+        createAuditLog({
+          entityId: card.id,
+          entityTitle: card.title,
+          entityType: ENTITY_TYPE.CARD,
+          action: ACTION.CREATE,
+        }),
+        linkedCardId
+          ? createAuditLog({
+              entityId: linkedCardId,
+              entityTitle: title,
+              entityType: ENTITY_TYPE.CARD,
+              action: ACTION.CREATE,
+            })
+          : Promise.resolve(),
+        liveblocks.broadcastEvent(boardId, {
+          type: "CARD_CREATED",
+          data: JSON.parse(JSON.stringify(card)),
+        }).catch((error) => console.error("Liveblocks broadcast failed", error)),
+      ]).catch((error) => console.error("Failed to finish card create side effects:", error));
+
+      revalidatePath(`/board/${boardId}`);
     });
+
+    return {
+      data: card,
+    };
   } catch (error) {
     return {
       error: "Failed to create.",
     };
   }
-
-  // Broadcast to liveblocks room for this board
-  try {
-    await liveblocks.broadcastEvent(boardId, {
-      type: "CARD_CREATED",
-      data: JSON.parse(JSON.stringify(card)),
-    });
-  } catch (error) {
-    console.error("Liveblocks broadcast failed", error);
-  }
-
-  revalidatePath(`/board/${boardId}`);
-
-  return {
-    data: card,
-  };
 };
 
 export const createCard = createSafeAction(CreateCard, handler);

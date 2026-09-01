@@ -6,6 +6,8 @@ export const UpdateCardOrder = z.object({
       id: z.string(),
       order: z.number(),
       listId: z.string(),
+      status: z.string().optional(),
+      isActive: z.boolean().optional(),
     })
   ),
   boardId: z.string(),

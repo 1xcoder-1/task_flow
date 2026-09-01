@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, ElementRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useRef } from "react";
+import { useParams } from "next/navigation";
 import { useEventListener, useOnClickOutside } from "usehooks-ts";
 import { Plus, X } from "lucide-react";
 
@@ -14,12 +14,18 @@ import { useAction } from "@/hooks/use-action";
 import { createList } from "@/actions/create-list";
 import { toast } from "sonner";
 
-export const ListForm = () => {
+type ListFormProps = {
+  onListCreated?: (list: any) => void;
+  onListSaved?: (tempId: string, list: any) => void;
+  onListFailed?: (tempId: string) => void;
+};
+
+export const ListForm = ({ onListCreated, onListSaved, onListFailed }: ListFormProps) => {
   const params = useParams();
-  const router = useRouter();
 
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pendingTempId = useRef<string | null>(null);
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -37,18 +43,41 @@ export const ListForm = () => {
   const { execute, fieldErrors } = useAction(createList, {
     onSuccess: (data) => {
       toast.success(`List "${data.title}" created.`);
+      if (pendingTempId.current) {
+        onListSaved?.(pendingTempId.current, data);
+        pendingTempId.current = null;
+      }
       disableEditing();
-      router.refresh();
     },
     onError: (error) => {
       toast.error(error);
+      if (pendingTempId.current) {
+        onListFailed?.(pendingTempId.current);
+        pendingTempId.current = null;
+      }
     },
   });
 
   const onSubmit = (formData: FormData) => {
-    const title = formData.get("title") as string;
+    const title = (formData.get("title") as string)?.trim();
     const boardId = formData.get("boardId") as string;
+    if (!title || title.length < 3) {
+      toast.error("Title is too short.");
+      return;
+    }
 
+    const tempId = `temp-list-${Date.now()}`;
+    pendingTempId.current = tempId;
+    onListCreated?.({
+      id: tempId,
+      title,
+      boardId,
+      order: Date.now(),
+      cards: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    disableEditing();
     execute({ title, boardId });
   };
 
@@ -65,7 +94,10 @@ export const ListForm = () => {
     return (
       <ListWrapper>
         <form
-          action={onSubmit}
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit(new FormData(e.currentTarget));
+          }}
           ref={formRef}
           className="w-full p-3 rounded-md bg-white space-y-4 shadow-md"
         >

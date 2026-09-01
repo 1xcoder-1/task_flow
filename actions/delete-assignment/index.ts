@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { createSafeAction } from "@/lib/create-safe-action";
@@ -15,20 +16,22 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   }
 
   const { id, boardId } = data;
-  let assignment;
 
   try {
-    assignment = await db.cardAssignment.delete({
+    const assignment = await db.cardAssignment.delete({
       where: {
         id,
       },
     });
+
+    after(() => {
+      revalidatePath("/board/" + boardId);
+    });
+
+    return { data: assignment };
   } catch (error) {
     return { error: "Failed to delete assignment." };
   }
-
-  revalidatePath("/board/" + boardId);
-  return { data: assignment };
 };
 
 export const deleteAssignment = createSafeAction(DeleteAssignment, handler);

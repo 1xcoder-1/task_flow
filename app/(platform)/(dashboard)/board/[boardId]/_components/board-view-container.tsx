@@ -31,7 +31,7 @@ export const BoardViewContainer = ({ board, lists }: BoardViewContainerProps) =>
       <BoardNavbar data={board} viewMode={viewMode} onViewChange={setViewMode} />
 
       {/* Main Content Area based on View Mode */}
-      <div className="flex-1 pt-[68px] p-4 overflow-hidden h-full">
+      <div className="min-h-0 flex-1 overflow-hidden px-4 pt-[68px] pb-4">
         {viewMode === "kanban" && (
           <ListContainer boardId={board.id} data={lists} isImpBoard={board.isImpBoard} />
         )}

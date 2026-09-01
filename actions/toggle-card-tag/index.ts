@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { ToggleCardTag } from "./schema";
 import { InputType, ReturnType } from "./types";
@@ -45,7 +46,9 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     return { error: "Failed to update tag." };
   }
 
-  revalidatePath(`/board/${boardId}`);
+  after(() => {
+    revalidatePath(`/board/${boardId}`);
+  });
   return { data: { cardId, tagId, attached } };
 };
 

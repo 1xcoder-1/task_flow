@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@clerk/nextjs/server";;
+import { after } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { ACTION, ENTITY_TYPE } from "@prisma/client";
 
 import { UpdateCard } from "./schema";
@@ -33,10 +34,8 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     }
   }
 
-  let card;
-
   try {
-    card = await db.card.update({
+    const card = await db.card.update({
       where: {
         id,
         list: {
@@ -48,23 +47,24 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       data: updateData,
     });
 
-    // create new activity log
-    await createAuditLog({
-      entityId: card.id,
-      entityTitle: card.title,
-      entityType: ENTITY_TYPE.CARD,
-      action: ACTION.UPDATE,
+    after(() => {
+      createAuditLog({
+        entityId: card.id,
+        entityTitle: card.title,
+        entityType: ENTITY_TYPE.CARD,
+        action: ACTION.UPDATE,
+      }).catch((error) => console.error("Failed to create audit log:", error));
+      revalidatePath(`/board/${boardId}`);
     });
+
+    return {
+      data: card,
+    };
   } catch (error) {
     return {
       error: "Failed to update.",
     };
   }
-
-  revalidatePath(`/board/${boardId}`);
-  return {
-    data: card,
-  };
 };
 
 export const updateCard = createSafeAction(UpdateCard, handler);

@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { inngest } from "@/inngest/client";
+import type { Comment } from "@prisma/client";
 
 import { CreateComment } from "./schema";
 import { InputType, ReturnType } from "./types";
@@ -10,20 +12,26 @@ import { db } from "@/lib/db";
 import { createSafeAction } from "@/lib/create-safe-action";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
-  const { userId, orgId } = await auth();
+  const { userId, orgId, sessionClaims } = await auth();
 
   if (!userId || !orgId) {
     return { error: "Unauthorized" };
   }
 
   const { text, cardId, boardId, mentionedUserIds } = data;
-  let comment;
-  let linkedComment;
+  let comment: Comment;
+  let linkedComment: Comment | undefined;
 
   try {
-    const user = await currentUser();
-    const actorName = user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : "User";
-    const actorImage = user?.imageUrl || null;
+    const claims = sessionClaims as { first_name?: string; last_name?: string; name?: string; image_url?: string; picture?: string } | null;
+    let actorName = claims?.name || [claims?.first_name, claims?.last_name].filter(Boolean).join(" ");
+    let actorImage = claims?.image_url || claims?.picture || null;
+
+    if (!actorName) {
+      const user = await currentUser();
+      actorName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || user?.primaryEmailAddress?.emailAddress || "User";
+      actorImage = actorImage || user?.imageUrl || null;
+    }
 
     const card = await db.card.findUnique({ where: { id: cardId } });
 
@@ -49,14 +57,13 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       });
     }
 
-    // Trigger user detail enrichment
-    await inngest.send({
+    after(() => inngest.send({
       name: "app/comment.update_user",
       data: {
         commentIds: [comment.id, linkedComment?.id].filter(Boolean) as string[],
         userId,
-      }
-    });
+      },
+    }).catch((error) => console.error("Comment user enrichment failed:", error)));
 
     // Handle @mentions: Create notifications for mentioned users
     if (mentionedUserIds && mentionedUserIds.length > 0) {

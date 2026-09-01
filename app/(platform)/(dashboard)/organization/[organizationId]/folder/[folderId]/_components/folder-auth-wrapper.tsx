@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useAction } from "@/hooks/use-action";
@@ -15,6 +16,9 @@ interface FolderAuthWrapperProps {
 }
 
 export const FolderAuthWrapper = ({ children, folderId }: FolderAuthWrapperProps) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirectUrl");
   const [isUnlocked, setIsUnlocked] = useState(false);
 
   const { execute, fieldErrors, isLoading } = useAction(verifyFolderPassword, {
@@ -22,6 +26,9 @@ export const FolderAuthWrapper = ({ children, folderId }: FolderAuthWrapperProps
       if (data.success) {
         setIsUnlocked(true);
         toast.success("Folder unlocked.");
+        if (redirectUrl) {
+          router.push(redirectUrl);
+        }
       }
     },
     onError: (error) => {

@@ -39,16 +39,14 @@ const BoardIdLayout = async ({
 
   return (
     <LiveblocksAppProvider>
-      <LiveblocksRoomProvider roomId={board.orgId}>
-        <LiveblocksRoomProvider roomId={boardId}>
-          <div
-            style={{ backgroundImage: `url(${board.imageFullUrl})` }}
-            className="relative h-full bg-no-repeat bg-cover bg-center"
-          >
-            <div aria-hidden className="absolute inset-0 bg-black/10" />
-            <main className="relative h-full">{children}</main>
-          </div>
-        </LiveblocksRoomProvider>
+      <LiveblocksRoomProvider roomId={boardId}>
+        <div
+          style={{ backgroundImage: `url(${board.imageFullUrl})` }}
+          className="relative h-full bg-no-repeat bg-cover bg-center"
+        >
+          <div aria-hidden className="absolute inset-0 bg-black/10" />
+          <main className="relative h-full">{children}</main>
+        </div>
       </LiveblocksRoomProvider>
     </LiveblocksAppProvider>
   );

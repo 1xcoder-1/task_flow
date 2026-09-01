@@ -5,100 +5,236 @@ import { db } from "@/lib/db";
 export async function GET(req: Request) {
   try {
     const { userId, orgId } = await auth();
-    
+
     if (!userId || !orgId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
-    const query = searchParams.get("q");
+    const query = searchParams.get("query")?.trim();
 
-    if (!query || query.trim().length < 2) {
-      return NextResponse.json({ results: [] });
+    if (!query || query.length < 2) {
+      return NextResponse.json({ boards: [], lists: [], cards: [] });
     }
 
-    const searchQuery = query.trim();
-
-    // Search cards
-    const cards = await db.card.findMany({
-      where: {
-        list: { board: { orgId } },
-        title: {
-          contains: searchQuery,
-          mode: "insensitive",
+    const [boards, lists, cards] = await Promise.all([
+      db.board.findMany({
+        where: {
+          orgId,
+          title: {
+            contains: query,
+            mode: "insensitive",
+          },
+          isImpBoard: false,
+          NOT: [
+            { title: { equals: "Daily Tasks", mode: "insensitive" } },
+            { title: { equals: "Imp Tasks daily", mode: "insensitive" } },
+          ],
         },
-      },
-      include: {
-        list: {
-          include: {
-            board: {
-              include: {
-                dayFolder: true,
+        take: 5,
+        select: {
+          id: true,
+          title: true,
+          imageThumbUrl: true,
+          dayFolder: {
+            select: {
+              id: true,
+              monthFolder: {
+                select: {
+                  id: true,
+                  yearFolder: {
+                    select: {
+                      id: true,
+                      folder: {
+                        select: {
+                          id: true,
+                          title: true,
+                          password: true,
+                        },
+                      },
+                    },
+                  },
+                },
               },
             },
           },
         },
-      },
-      take: 10,
-    });
-
-    // Search boards
-    const boards = await db.board.findMany({
-      where: {
-        orgId,
-        title: {
-          contains: searchQuery,
-          mode: "insensitive",
+      }),
+      db.list.findMany({
+        where: {
+          board: {
+            orgId,
+          },
+          title: {
+            contains: query,
+            mode: "insensitive",
+          },
         },
-      },
-      include: {
-        dayFolder: true,
-      },
-      take: 10,
-    });
-
-    // Search folders
-    const folders = await db.folder.findMany({
-      where: {
-        orgId,
-        title: {
-          contains: searchQuery,
-          mode: "insensitive",
+        take: 8,
+        select: {
+          id: true,
+          title: true,
+          boardId: true,
+          board: {
+            select: {
+              title: true,
+              dayFolder: {
+                select: {
+                  id: true,
+                  monthFolder: {
+                    select: {
+                      id: true,
+                      yearFolder: {
+                        select: {
+                          id: true,
+                          folder: {
+                            select: {
+                              id: true,
+                              title: true,
+                              password: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
-      },
-      take: 10,
+      }),
+      db.card.findMany({
+        where: {
+          list: {
+            board: {
+              orgId,
+            },
+          },
+          title: {
+            contains: query,
+            mode: "insensitive",
+          },
+        },
+        take: 10,
+        select: {
+          id: true,
+          title: true,
+          priority: true,
+          list: {
+            select: {
+              id: true,
+              title: true,
+              boardId: true,
+              board: {
+                select: {
+                  title: true,
+                  dayFolder: {
+                    select: {
+                      id: true,
+                      monthFolder: {
+                        select: {
+                          id: true,
+                          yearFolder: {
+                            select: {
+                              id: true,
+                              folder: {
+                                select: {
+                                  id: true,
+                                  title: true,
+                                  password: true,
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return NextResponse.json({
+      boards: boards.map((b) => {
+        const dayFolder = b.dayFolder;
+        const monthFolder = dayFolder?.monthFolder;
+        const yearFolder = monthFolder?.yearFolder;
+        const folder = yearFolder?.folder;
+        const hasPassword = Boolean(folder?.password && folder.password.trim().length > 0);
+        const dayFolderUrl = (folder && yearFolder && monthFolder && dayFolder)
+          ? `/organization/${orgId}/folder/${folder.id}/year/${yearFolder.id}/month/${monthFolder.id}/day/${dayFolder.id}`
+          : null;
+
+        return {
+          id: b.id,
+          title: b.title,
+          type: "board",
+          imageUrl: b.imageThumbUrl,
+          folderId: folder?.id || null,
+          folderTitle: folder?.title || null,
+          isPasswordProtected: hasPassword,
+          dayFolderUrl,
+          url: `/board/${b.id}`,
+        };
+      }),
+      lists: lists.map((l) => {
+        const dayFolder = l.board?.dayFolder;
+        const monthFolder = dayFolder?.monthFolder;
+        const yearFolder = monthFolder?.yearFolder;
+        const folder = yearFolder?.folder;
+        const hasPassword = Boolean(folder?.password && folder.password.trim().length > 0);
+        const dayFolderUrl = (folder && yearFolder && monthFolder && dayFolder)
+          ? `/organization/${orgId}/folder/${folder.id}/year/${yearFolder.id}/month/${monthFolder.id}/day/${dayFolder.id}`
+          : null;
+
+        return {
+          id: l.id,
+          title: l.title,
+          type: "list",
+          boardId: l.boardId,
+          boardTitle: l.board?.title || "Board",
+          folderId: folder?.id || null,
+          folderTitle: folder?.title || null,
+          isPasswordProtected: hasPassword,
+          dayFolderUrl,
+          url: `/board/${l.boardId}`,
+        };
+      }),
+      cards: cards.map((c) => {
+        const dayFolder = c.list?.board?.dayFolder;
+        const monthFolder = dayFolder?.monthFolder;
+        const yearFolder = monthFolder?.yearFolder;
+        const folder = yearFolder?.folder;
+        const hasPassword = Boolean(folder?.password && folder.password.trim().length > 0);
+        const dayFolderUrl = (folder && yearFolder && monthFolder && dayFolder)
+          ? `/organization/${orgId}/folder/${folder.id}/year/${yearFolder.id}/month/${monthFolder.id}/day/${dayFolder.id}`
+          : null;
+
+        return {
+          id: c.id,
+          title: c.title,
+          type: "card",
+          priority: c.priority,
+          boardId: c.list?.boardId,
+          boardTitle: c.list?.board?.title || "Board",
+          listTitle: c.list?.title || "List",
+          folderId: folder?.id || null,
+          folderTitle: folder?.title || null,
+          isPasswordProtected: hasPassword,
+          dayFolderUrl,
+          url: `/board/${c.list?.boardId}?cardId=${c.id}`,
+        };
+      }),
     });
-
-    const results = [
-      ...cards.map((card) => ({
-        id: card.id,
-        type: "card" as const,
-        title: card.title,
-        subtitle: `${card.list.board.title} • ${card.list.title}`,
-        url: `/board/${card.list.board.id}`,
-        icon: "📝",
-      })),
-      ...boards.map((board) => ({
-        id: board.id,
-        type: "board" as const,
-        title: board.title,
-        subtitle: board.dayFolder?.title || "Board",
-        url: `/board/${board.id}`,
-        icon: "📋",
-      })),
-      ...folders.map((folder) => ({
-        id: folder.id,
-        type: "folder" as const,
-        title: folder.title,
-        subtitle: "Folder",
-        url: `/organization/${folder.orgId}/folder/${folder.id}`,
-        icon: "📁",
-      })),
-    ];
-
-    return NextResponse.json({ results });
   } catch (error) {
-    console.error("Search error:", error);
-    return NextResponse.json({ results: [] }, { status: 500 });
+    console.error("[SEARCH_GET_ERROR]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
+
+

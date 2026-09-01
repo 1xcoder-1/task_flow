@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import type { ACTION, ENTITY_TYPE } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 
 import { db } from "@/lib/db";
 import { inngest } from "@/inngest/client";
@@ -19,21 +20,27 @@ export const createAuditLog = async (props: Props) => {
 
     const { entityId, entityType, entityTitle, action } = props;
 
-    await inngest.send({
-      name: "app/audit.log",
-      data: {
-        orgId,
-        entityId,
-        entityType,
-        entityTitle,
-        action,
-        userId,
-        userImage: null,
-        userName: "Unknown",
-      },
-    });
+    after(async () => {
+      try {
+        await inngest.send({
+          name: "app/audit.log",
+          data: {
+            orgId,
+            entityId,
+            entityType,
+            entityTitle,
+            action,
+            userId,
+            userImage: null,
+            userName: "Unknown",
+          },
+        });
 
-    revalidatePath(`/organization/${orgId}/activity`);
+        revalidatePath(`/organization/${orgId}/activity`);
+      } catch (error) {
+        console.log(`[AUDIT_LOG_ERROR]`, error);
+      }
+    });
   } catch (error) {
     console.log(`[AUDIT_LOG_ERROR]`, error);
   }

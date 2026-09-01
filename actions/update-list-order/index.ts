@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@clerk/nextjs/server";;
+import { after } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 import { UpdateListOrder } from "./schema";
 import { InputType, ReturnType } from "./types";
@@ -43,7 +44,9 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     };
   }
 
-  revalidatePath(`/board/${boardId}`);
+  after(() => {
+    revalidatePath(`/board/${boardId}`);
+  });
   return {
     data: lists,
   };

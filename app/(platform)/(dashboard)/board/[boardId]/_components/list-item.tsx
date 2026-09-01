@@ -13,9 +13,12 @@ type ListItemProps = {
   data: ListWithCards;
   index: number;
   isImpBoard?: boolean;
+  onCardCreated?: (listId: string, card: any) => void;
+  onCardSaved?: (listId: string, tempId: string, card: any) => void;
+  onCardFailed?: (listId: string, tempId: string) => void;
 };
 
-export const ListItem = ({ data, index, isImpBoard }: ListItemProps) => {
+export const ListItem = ({ data, index, isImpBoard, onCardCreated, onCardSaved, onCardFailed }: ListItemProps) => {
   const textareaRef = useRef<ElementRef<"textarea">>(null);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -62,11 +65,15 @@ export const ListItem = ({ data, index, isImpBoard }: ListItemProps) => {
 
             <CardForm
               listId={data.id}
+              listTitle={data.title}
               ref={textareaRef}
               isEditing={isEditing}
               enableEditing={enableEditing}
               disableEditing={disableEditing}
               isImpBoard={isImpBoard}
+              onCardCreated={onCardCreated}
+              onCardSaved={onCardSaved}
+              onCardFailed={onCardFailed}
             />
           </div>
         </li>

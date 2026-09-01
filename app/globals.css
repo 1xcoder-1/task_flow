@@ -93,6 +93,9 @@ a[href^="https://liveblocks.io"] {
   .board-scrollbar::-webkit-scrollbar {
     height: 16px;
   }
+  .board-scrollbar::-webkit-scrollbar:vertical {
+    width: 0;
+  }
   .board-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }

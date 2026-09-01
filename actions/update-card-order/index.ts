@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@clerk/nextjs/server";;
+import { after } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 import { UpdateCardOrder } from "./schema";
 import { InputType, ReturnType } from "./types";
@@ -19,14 +20,12 @@ const handler = async (data: InputType): Promise<ReturnType> => {
 
   const { items, boardId } = data;
 
-  let updatedCards;
-
-  // Verify the user has access to this board
   const board = await db.board.findUnique({
     where: {
       id: boardId,
       orgId,
     },
+    select: { id: true },
   });
 
   if (!board) {
@@ -34,50 +33,34 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   }
 
   try {
-    const lists = await db.list.findMany({
-      where: { boardId },
-      select: { id: true, title: true },
-    });
-    const listMap = new Map(lists.map(l => [l.id, l.title.toLowerCase()]));
+    const updatedCards = await db.$transaction(
+      items.map((card) =>
+        db.card.update({
+          where: {
+            id: card.id,
+          },
+          data: {
+            order: card.order,
+            listId: card.listId,
+            ...(card.status ? { status: card.status, isActive: card.isActive ?? false } : {}),
+          },
+        })
+      )
+    );
 
-    const transaction = items.map((card) => {
-      const listTitle = listMap.get(card.listId) || "";
-      let isActive = undefined;
-      let status = undefined;
-
-      if (listTitle.includes("in progress")) {
-        isActive = true;
-        status = "IN_PROGRESS";
-      } else if (listTitle.includes("done")) {
-        isActive = false;
-        status = "DONE";
-      }
-
-      return db.card.update({
-        where: {
-          id: card.id,
-        },
-        data: {
-          order: card.order,
-          listId: card.listId,
-          ...(isActive !== undefined && { isActive }),
-          ...(status !== undefined && { status }),
-        },
-      });
+    after(() => {
+      revalidatePath(`/board/${boardId}`);
     });
 
-    updatedCards = await db.$transaction(transaction);
+    return {
+      data: updatedCards,
+    };
   } catch (error) {
     console.error("Failed to update card order:", error);
     return {
       error: "Failed to update.",
     };
   }
-
-  revalidatePath(`/board/${boardId}`);
-  return {
-    data: updatedCards,
-  };
 };
 
 export const updateCardOrder = createSafeAction(UpdateCardOrder, handler);

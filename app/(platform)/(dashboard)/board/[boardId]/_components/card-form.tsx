@@ -13,16 +13,23 @@ import { FormSubmit } from "@/components/form/form-submit";
 import { useAction } from "@/hooks/use-action";
 import { createCard } from "@/actions/create-card";
 import { getFolders, getYears, getMonths, getDays, getBoards, getLists } from "@/actions/get-destinations";
+import { statusFromListTitle } from "@/lib/card-status";
+import { useCardOverlayStore } from "@/hooks/use-card-assignment-overlay";
+
 type CardFormProps = {
   listId: string;
+  listTitle?: string;
   enableEditing: () => void;
   disableEditing: () => void;
   isEditing: boolean;
   isImpBoard?: boolean;
+  onCardCreated?: (listId: string, card: any) => void;
+  onCardSaved?: (listId: string, tempId: string, card: any) => void;
+  onCardFailed?: (listId: string, tempId: string) => void;
 };
 
 export const CardForm = forwardRef<HTMLTextAreaElement, CardFormProps>(
-  ({ listId, enableEditing, disableEditing, isEditing, isImpBoard }, ref) => {
+  ({ listId, listTitle, enableEditing, disableEditing, isEditing, isImpBoard, onCardCreated, onCardSaved, onCardFailed }, ref) => {
     const params = useParams();
     const formRef = useRef<HTMLFormElement>(null);
 
@@ -91,9 +98,19 @@ export const CardForm = forwardRef<HTMLTextAreaElement, CardFormProps>(
       }
     }, [selectedBoardId]);
 
+    const pendingTempId = useRef<string | null>(null);
+
     const { execute, fieldErrors } = useAction(createCard, {
       onSuccess: (data) => {
         toast.success(`Card "${data.title}" created.`);
+        if (pendingTempId.current) {
+          onCardSaved?.(listId, pendingTempId.current, data);
+          useCardOverlayStore.getState().patchCard(data.id, {
+            status: data.status,
+            isActive: data.isActive,
+          });
+          pendingTempId.current = null;
+        }
         formRef.current?.reset();
         setSelectedFolderId("");
         setSelectedYearId("");
@@ -104,6 +121,10 @@ export const CardForm = forwardRef<HTMLTextAreaElement, CardFormProps>(
       },
       onError: (error) => {
         toast.error(error);
+        if (pendingTempId.current) {
+          onCardFailed?.(listId, pendingTempId.current);
+          pendingTempId.current = null;
+        }
       },
     });
 
@@ -122,6 +143,25 @@ export const CardForm = forwardRef<HTMLTextAreaElement, CardFormProps>(
         toast.error("Please select a destination list.");
         return;
       }
+
+      const tempId = `temp-card-${Date.now()}`;
+      const listStatus = statusFromListTitle(listTitle);
+      pendingTempId.current = tempId;
+      onCardCreated?.(listId, {
+        id: tempId,
+        title,
+        listId,
+        boardId,
+        order: Date.now(),
+        description: null,
+        priority: "Low",
+        status: listStatus.status,
+        isActive: listStatus.isActive,
+        assignments: [],
+        tags: [],
+        _count: { attachments: 0, comments: 0, subtasks: 0 },
+      });
+      useCardOverlayStore.getState().patchCard(tempId, listStatus);
 
       execute({ 
         title, 

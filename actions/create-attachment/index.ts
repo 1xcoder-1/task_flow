@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
 import { CreateAttachment } from "./schema";
@@ -57,7 +58,9 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     return { error: "Failed to create." };
   }
 
-  revalidatePath(`/board/${boardId}`);
+  after(() => {
+    revalidatePath(`/board/${boardId}`);
+  });
   return { data: attachment };
 };
 

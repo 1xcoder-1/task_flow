@@ -22,6 +22,7 @@ export const RichTextEditor = ({
   className = "",
 }: RichTextEditorProps) => {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         bulletList: {

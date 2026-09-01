@@ -6,6 +6,7 @@ import { useCardModal } from "@/hooks/use-card-modal";
 import { GanttChart, Calendar as CalendarIcon, Clock, CheckCircle2, ChevronLeft, ChevronRight, AlertCircle, ListTodo } from "lucide-react";
 import { TagBadge } from "@/components/tag-badge";
 import { Button } from "@/components/ui/button";
+import { useCardAssignments, useCardOverlay } from "@/hooks/use-card-assignment-overlay";
 
 interface TimelineViewProps {
   cards: any[];
@@ -148,41 +149,7 @@ export const TimelineView = ({ cards }: TimelineViewProps) => {
                       </span>
                     </div>
 
-                    <div className="flex items-center flex-wrap gap-2">
-                      {card.priority && (
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border tracking-wider ${
-                          PRIORITY_STYLES[card.priority.toLowerCase()] || "bg-white/10 text-white/90 border-white/20"
-                        }`}>
-                          {card.priority}
-                        </span>
-                      )}
-
-                      {overdue && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-500/40 text-red-100 border border-red-400/50 uppercase tracking-wider flex items-center gap-1 shadow-sm">
-                          <AlertCircle className="h-3 w-3" /> Overdue
-                        </span>
-                      )}
-
-                      {card.isActive && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/30 text-emerald-100 border border-emerald-500/50 uppercase tracking-wider shadow-sm">
-                          ⚡ Active
-                        </span>
-                      )}
-                      
-                      {card.list?.title && (
-                        <span className="text-[11px] font-semibold text-white/80 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
-                          {card.list.title}
-                        </span>
-                      )}
-                    </div>
-
-                    {card.tags && card.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {card.tags.map((ct: any) => (
-                          <TagBadge key={ct.id || ct.tag?.id} name={ct.tag?.name || ct.name} color={ct.tag?.color || ct.color} />
-                        ))}
-                      </div>
-                    )}
+                    <TimelineCardMeta card={card} overdue={overdue} />
                   </div>
                 </div>
 
@@ -201,28 +168,93 @@ export const TimelineView = ({ cards }: TimelineViewProps) => {
                     </span>
                   </div>
 
-                  {card.assignments && card.assignments.length > 0 && (
-                    <div className="flex -space-x-2 overflow-hidden border border-white/10 rounded-full p-0.5 bg-black/20">
-                      {card.assignments.map((assignee: any) => (
-                        <Image
-                          key={assignee.id}
-                          className="inline-block h-8 w-8 rounded-full ring-2 ring-black object-cover"
-                          src={assignee.userImage}
-                          alt={assignee.userName || "User avatar"}
-                          title={assignee.userName}
-                          width={32}
-                          height={32}
-                          unoptimized
-                        />
-                      ))}
-                    </div>
-                  )}
+                  <TimelineAssignees cardId={card.id} assignments={card.assignments} />
                 </div>
               </div>
             );
           })
         )}
       </div>
+    </div>
+  );
+};
+
+const TimelineCardMeta = ({ card, overdue }: { card: any; overdue: boolean }) => {
+  const overlay = useCardOverlay(card.id);
+  const priority = overlay?.priority ?? card.priority;
+  const tags = overlay?.tags ?? card.tags ?? [];
+  const isActive = overlay?.isActive ?? card.isActive;
+
+  return (
+    <>
+      <div className="flex items-center flex-wrap gap-2">
+        {priority && (
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border tracking-wider ${
+            PRIORITY_STYLES[priority.toLowerCase()] || "bg-white/10 text-white/90 border-white/20"
+          }`}>
+            {priority}
+          </span>
+        )}
+
+        {overdue && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-500/40 text-red-100 border border-red-400/50 uppercase tracking-wider flex items-center gap-1 shadow-sm">
+            <AlertCircle className="h-3 w-3" /> Overdue
+          </span>
+        )}
+
+        {isActive && (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/30 text-emerald-100 border border-emerald-500/50 uppercase tracking-wider shadow-sm">
+            ⚡ Active
+          </span>
+        )}
+
+        {card.list?.title && (
+          <span className="text-[11px] font-semibold text-white/80 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+            {card.list.title}
+          </span>
+        )}
+      </div>
+
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-1">
+          {tags.map((ct: any) => (
+            <TagBadge key={ct.id || ct.tag?.id || ct.tagId} name={ct.tag?.name || ct.name} color={ct.tag?.color || ct.color} variant="timeline" />
+          ))}
+        </div>
+      )}
+    </>
+  );
+};
+
+const TimelineAssignees = ({ cardId, assignments }: { cardId: string; assignments?: any[] }) => {
+  const people = useCardAssignments(cardId, assignments || []);
+
+  if (people.length === 0) return null;
+
+  return (
+    <div className="flex -space-x-2 overflow-hidden border border-white/10 rounded-full p-0.5 bg-black/20">
+      {people.map((assignee) => (
+        assignee.userImage ? (
+          <Image
+            key={assignee.id}
+            className="inline-block h-8 w-8 rounded-full ring-2 ring-black object-cover"
+            src={assignee.userImage}
+            alt={assignee.userName || "User avatar"}
+            title={assignee.userName}
+            width={32}
+            height={32}
+            unoptimized
+          />
+        ) : (
+          <span
+            key={assignee.id}
+            title={assignee.userName}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full ring-2 ring-black bg-white/20 text-xs font-semibold text-white"
+          >
+            {(assignee.userName || "?").charAt(0)}
+          </span>
+        )
+      ))}
     </div>
   );
 };

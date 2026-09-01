@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, useRef } from "react";
 import { toast } from "sonner";
 import { DragDropContext, type DropResult, Droppable } from "@hello-pangea/dnd";
-import { useEventListener } from "@liveblocks/react/suspense";
+import { useEventListener } from "@liveblocks/react";
 
 import { ListForm } from "./list-form";
 import { ListItem } from "./list-item";
@@ -14,6 +14,8 @@ import { updateListOrder } from "@/actions/update-list-order";
 import { updateCardOrder } from "@/actions/update-card-order";
 import { useRouter } from "next/navigation";
 import { TagFilterBar } from "@/components/tag-filter-bar";
+import { useCardOverlayStore } from "@/hooks/use-card-assignment-overlay";
+import { statusFromListTitle } from "@/lib/card-status";
 
 type ListContainerProps = {
   data: ListWithCards[];
@@ -29,7 +31,7 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number) {
   return result;
 }
 
-const subscribeNoop = () => () => {};
+const subscribeNoop = () => () => { };
 const getSnapshotClient = () => true;
 const getSnapshotServer = () => false;
 
@@ -42,15 +44,62 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
   );
   const [orderedData, setOrderedData] = useState(data);
   const [activeTagId, setActiveTagId] = useState<string | null>(null);
+  const overlays = useCardOverlayStore((state) => state.byCardId);
+  const localListIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    setOrderedData(data);
+    setOrderedData((prev) => {
+      const extras = prev.filter((list) => {
+        if (!localListIdsRef.current.has(list.id)) return false;
+        if (data.some((serverList) => serverList.id === list.id)) return false;
+        if (String(list.id).startsWith("temp-") && data.some((serverList) => serverList.title === list.title)) {
+          return false;
+        }
+        return true;
+      });
+
+      const merged = data.map((serverList) => {
+        const local = prev.find((list) => list.id === serverList.id);
+        if (!local) return serverList;
+        const tempCards = (local.cards || []).filter((card: any) => String(card.id).startsWith("temp-"));
+        if (tempCards.length === 0) return serverList;
+        const serverCardIds = new Set((serverList.cards || []).map((card: any) => card.id));
+        return {
+          ...serverList,
+          cards: [
+            ...(serverList.cards || []),
+            ...tempCards.filter((card: any) => !serverCardIds.has(card.id)),
+          ],
+        };
+      });
+
+      return extras.length ? [...merged, ...extras] : merged;
+    });
   }, [data]);
+
+  const listsWithLiveCards = orderedData.map((list) => ({
+    ...list,
+    cards: (list.cards || []).map((card: any) => {
+      const overlay = overlays[card.id];
+      if (!overlay) return card;
+      return {
+        ...card,
+        priority: overlay.priority ?? card.priority,
+        status: overlay.status ?? card.status,
+        isActive: overlay.isActive ?? card.isActive,
+        tags: overlay.tags ?? card.tags,
+        assignments: overlay.assignments ?? card.assignments,
+        dueDate: overlay.dueDate !== undefined ? overlay.dueDate : card.dueDate,
+        title: overlay.title ?? card.title,
+        description: overlay.description !== undefined ? overlay.description : card.description,
+      };
+    }),
+  }));
 
   // Extract all unique tags on cards in this board
   const allBoardTags = Array.from(
     new Map(
-      orderedData
+      listsWithLiveCards
         .flatMap((list) => list.cards || [])
         .flatMap((card: any) => card.tags || [])
         .filter((ct: any) => ct && (ct.tag || ct.id))
@@ -59,13 +108,13 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
   );
 
   const displayData = activeTagId
-    ? orderedData.map((list) => ({
+    ? listsWithLiveCards.map((list) => ({
       ...list,
       cards: (list.cards || []).filter((card: any) =>
         card.tags?.some((ct: any) => ct.tagId === activeTagId || ct.tag?.id === activeTagId)
       ),
     }))
-    : orderedData;
+    : listsWithLiveCards;
 
   useEventListener(({ event }) => {
     const customEvent = event as { type?: string; data?: any };
@@ -181,11 +230,15 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
       else {
         // remove card from the source list
         const [movedCard] = sourceList.cards.splice(source.index, 1);
+        const statusPatch = statusFromListTitle(destinationList.title);
+        const updatedCard = {
+          ...movedCard,
+          listId: destination.droppableId,
+          ...statusPatch,
+        };
 
-        // create a cloned card with the new list id
-        const updatedCard = { ...movedCard, listId: destination.droppableId };
+        useCardOverlayStore.getState().patchCard(updatedCard.id, statusPatch);
 
-        // add new card to the destination list
         destinationList.cards.splice(destination.index, 0, updatedCard);
 
         sourceList.cards = sourceList.cards.map((card, i) => ({
@@ -193,7 +246,6 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
           order: i,
         }));
 
-        // update the order for each card in destination list
         destinationList.cards = destinationList.cards.map((card, i) => ({
           ...card,
           order: i,
@@ -203,10 +255,63 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
 
         executeUpdateCardOrder({
           boardId: boardId,
-          items: [...sourceList.cards, ...destinationList.cards].map(({ id, order, listId }) => ({ id, order, listId })),
+          items: [...sourceList.cards, ...destinationList.cards].map((card) => ({
+            id: card.id,
+            order: card.order,
+            listId: card.listId,
+            ...(card.id === updatedCard.id
+              ? { status: statusPatch.status, isActive: statusPatch.isActive }
+              : {}),
+          })),
         });
       }
     }
+  };
+
+  const addOptimisticCard = (listId: string, card: any) => {
+    setOrderedData((prev) =>
+      prev.map((list) =>
+        list.id === listId ? { ...list, cards: [...(list.cards || []), card] } : list
+      )
+    );
+  };
+
+  const replaceOptimisticCard = (listId: string, tempId: string, card: any) => {
+    setOrderedData((prev) =>
+      prev.map((list) =>
+        list.id === listId
+          ? { ...list, cards: (list.cards || []).map((item) => item.id === tempId ? { ...item, ...card } : item) }
+          : list
+      )
+    );
+  };
+
+  const removeOptimisticCard = (listId: string, tempId: string) => {
+    setOrderedData((prev) =>
+      prev.map((list) =>
+        list.id === listId
+          ? { ...list, cards: (list.cards || []).filter((item) => item.id !== tempId) }
+          : list
+      )
+    );
+  };
+
+  const addOptimisticList = (list: any) => {
+    localListIdsRef.current.add(list.id);
+    setOrderedData((prev) => prev.some((item) => item.id === list.id) ? prev : [...prev, list]);
+  };
+
+  const replaceOptimisticList = (tempId: string, list: any) => {
+    localListIdsRef.current.delete(tempId);
+    localListIdsRef.current.add(list.id);
+    setOrderedData((prev) =>
+      prev.map((item) => item.id === tempId ? { ...item, ...list, cards: item.cards || [] } : item)
+    );
+  };
+
+  const removeOptimisticList = (tempId: string) => {
+    localListIdsRef.current.delete(tempId);
+    setOrderedData((prev) => prev.filter((item) => item.id !== tempId));
   };
 
   return (
@@ -216,7 +321,7 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
         activeTagId={activeTagId}
         onSelectTag={(tagId) => setActiveTagId(tagId)}
       />
-      <div className="flex-1 overflow-x-auto p-4 pt-2">
+      <div className="min-h-0 flex-1 overflow-x-auto px-4 pt-2 pb-4 board-scrollbar">
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="lists" type="list" direction="horizontal">
             {(provided) => (
@@ -226,12 +331,24 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
                 className="flex gap-x-3 h-full"
               >
                 {displayData.map((list, i) => (
-                  <ListItem key={list.id} index={i} data={list} isImpBoard={isImpBoard} />
+                  <ListItem
+                    key={list.id}
+                    index={i}
+                    data={list}
+                    isImpBoard={isImpBoard}
+                    onCardCreated={addOptimisticCard}
+                    onCardSaved={replaceOptimisticCard}
+                    onCardFailed={removeOptimisticCard}
+                  />
                 ))}
 
                 {provided.placeholder}
 
-                <ListForm />
+                <ListForm
+                  onListCreated={addOptimisticList}
+                  onListSaved={replaceOptimisticList}
+                  onListFailed={removeOptimisticList}
+                />
                 <div aria-hidden className="flex-shrink-0 w-1" />
               </ol>
             )}
