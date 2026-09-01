@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 
 import { BoardViewContainer } from "./_components/board-view-container";
 import { db } from "@/lib/db";
+import { getBoard } from "@/lib/get-board";
 
 type BoardIdPageProps = {
   params: Promise<{
@@ -15,12 +16,7 @@ const BoardIdPage = async ({ params }: BoardIdPageProps) => {
 
   if (!orgId) redirect("/select-org");
 
-  const board = await db.board.findUnique({
-    where: {
-      id: boardId,
-      orgId,
-    },
-  });
+  const board = await getBoard(boardId, orgId);
 
   if (!board) notFound();
 
@@ -37,8 +33,13 @@ const BoardIdPage = async ({ params }: BoardIdPageProps) => {
           order: "asc",
         },
         include: {
-          comments: true,
-          attachments: true,
+          _count: {
+            select: {
+              attachments: true,
+              comments: true,
+              subtasks: true,
+            },
+          },
           assignments: true,
           tags: {
             include: {

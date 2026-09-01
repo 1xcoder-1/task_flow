@@ -31,8 +31,9 @@ import { getTags } from "@/actions/get-tags";
 import { TagBadge } from "@/components/tag-badge";
 import { Tag as TagIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter, usePathname } from "next/navigation";
 import { RichTextEditor } from "@/components/rich-text-editor";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const HeaderSection = ({ title, setTitle, onTitleBlur, description, setDescription, onDescriptionBlur }: any) => (
   <div className="space-y-3">
@@ -59,7 +60,7 @@ const HeaderSection = ({ title, setTitle, onTitleBlur, description, setDescripti
   </div>
 );
 
-const MetadataSection = ({ cardData, priority, onPriorityChange, executeUpdateCard, params, memberships, isAssigneeOpen, setIsAssigneeOpen, onToggleAssignee, isTagOpen, setIsTagOpen, orgTags, newTagName, setNewTagName, newTagColor, setNewTagColor, onCreateNewTag, onToggleTag }: any) => (
+const MetadataSection = ({ cardData, priority, onPriorityChange, status, onStatusChange, executeUpdateCard, params, memberships, isAssigneeOpen, setIsAssigneeOpen, onToggleAssignee, isTagOpen, setIsTagOpen, orgTags, newTagName, setNewTagName, newTagColor, setNewTagColor, onCreateNewTag, onToggleTag }: any) => (
   <div className="grid grid-cols-[100px_1fr] gap-y-4 text-sm items-center">
     <div className="text-gray-500">Priority</div>
     <div>
@@ -73,6 +74,25 @@ const MetadataSection = ({ cardData, priority, onPriorityChange, executeUpdateCa
           <option value="Low">⚪ Low</option>
           <option value="Medium">🟠 Medium</option>
           <option value="High">🔴 High</option>
+        </select>
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <div className="text-gray-500">Status</div>
+    <div>
+      <div className="relative inline-block">
+        <select 
+          aria-label="Select status"
+          value={status}
+          onChange={onStatusChange}
+          className="appearance-none bg-gray-50 border border-gray-200 text-gray-800 text-sm font-medium rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300 pl-3 pr-8 py-1.5 shadow-sm cursor-pointer"
+        >
+          <option value="PENDING">Pending</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="DONE">Done</option>
         </select>
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
           <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
@@ -239,50 +259,55 @@ const MetadataSection = ({ cardData, priority, onPriorityChange, executeUpdateCa
   </div>
 );
 
-const SubtasksSection = ({ cardData, subtaskTitle, setSubtaskTitle, onAddSubtask, onToggleSubtask, onDeleteSubtask }: any) => (
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-x-2">
-        <CheckCircle2 className="h-4 w-4 text-gray-500" />
-        <h3 className="font-semibold text-gray-900">Subtasks</h3>
-        <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-xs font-medium text-gray-600">
-          {cardData?.subtasks?.length || 0}
+const SubtasksSection = ({ cardData, subtaskTitle, setSubtaskTitle, onAddSubtask, onToggleSubtask, onDeleteSubtask }: any) => {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-x-2">
+          <CheckCircle2 className="h-4 w-4 text-gray-500" />
+          <h3 className="font-semibold text-gray-900">Subtasks</h3>
+          <span className="px-1.5 py-0.5 rounded-full bg-gray-100 text-xs font-medium text-gray-600">
+            {cardData?.subtasks?.length || 0}
+          </span>
+        </div>
+        <span className="text-xs text-gray-500 font-medium">
+          {cardData?.subtasks?.filter((s: any) => s.isCompleted).length || 0} of {cardData?.subtasks?.length || 0} done
         </span>
       </div>
-      <span className="text-xs text-gray-500 font-medium">
-        {cardData?.subtasks?.filter((s: any) => s.isCompleted).length || 0} of {cardData?.subtasks?.length || 0} done
-      </span>
-    </div>
 
-    <div className="space-y-2">
-      {cardData?.subtasks?.map((subtask: any) => (
-        <div key={subtask.id} className="group flex items-center justify-between gap-x-3 p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50 transition">
-          <button type="button" className="flex items-center gap-x-3 flex-1 cursor-pointer text-left" onClick={() => onToggleSubtask(subtask.id, subtask.isCompleted)}>
-            <CheckCircle2 className={`h-4 w-4 ${subtask.isCompleted ? 'text-green-500 fill-green-50' : 'text-gray-300'}`} />
-            <span className={`text-sm ${subtask.isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{subtask.title}</span>
-          </button>
-          <Button onClick={() => onDeleteSubtask(subtask.id)} variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition text-red-500">
-            <Trash2 className="h-3 w-3" />
+      <div className="space-y-2">
+        {cardData?.subtasks?.map((subtask: any) => (
+          <div
+            key={subtask.id}
+            className="group flex items-center justify-between gap-x-3 p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50 transition"
+          >
+            <button type="button" className="flex items-center gap-x-3 flex-1 cursor-pointer text-left" onClick={() => onToggleSubtask(subtask.id, subtask.isCompleted)}>
+              <CheckCircle2 className={`h-4 w-4 ${subtask.isCompleted ? 'text-green-500 fill-green-50' : 'text-gray-300'}`} />
+              <span className={`text-sm ${subtask.isCompleted ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{subtask.title}</span>
+            </button>
+            <Button onClick={() => onDeleteSubtask(subtask.id)} variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition text-red-500">
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        ))}
+        <div className="flex items-center gap-x-2 w-full mt-2">
+          <input 
+            aria-label="Add a subtask"
+            type="text" 
+            value={subtaskTitle}
+            onChange={(e) => setSubtaskTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') onAddSubtask(); }}
+            placeholder="Add a subtask..." 
+            className="flex-1 text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
+          />
+          <Button onClick={onAddSubtask} variant="outline" size="icon" className="h-9 w-9 rounded-lg">
+            <Plus className="h-4 w-4 text-gray-500" />
           </Button>
         </div>
-      ))}
-      <div className="flex items-center gap-x-2 w-full mt-2">
-        <input 
-          aria-label="Add a subtask"
-          type="text" 
-          value={subtaskTitle}
-          onChange={(e) => setSubtaskTitle(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') onAddSubtask(); }}
-          placeholder="Add a subtask..." 
-          className="flex-1 text-sm px-3 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-300"
-        />
-        <Button onClick={onAddSubtask} variant="outline" size="icon" className="h-9 w-9 rounded-lg">
-          <Plus className="h-4 w-4 text-gray-500" />
-        </Button>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const handleView = (e: React.MouseEvent, url: string) => {
   e.preventDefault();
@@ -316,44 +341,29 @@ const AttachmentsSection = ({ cardData, isAddingLink, setIsAddingLink, linkUrl, 
       </div>
     </div>
 
-    {cardData?.attachments?.map((attachment: any) => (
-      <div key={attachment.id} className="group flex items-start justify-between gap-x-3 p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition">
-        <div className="flex items-start gap-x-3">
-          {attachment.type === "image" ? (
-            <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0 overflow-hidden border border-gray-200 relative">
-              <Image src={attachment.url} alt="Attachment" className="h-full w-full object-cover" width={40} height={40} unoptimized />
-            </div>
-          ) : attachment.type === "document" ? (
-            <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
-              <FileText className="h-5 w-5 text-gray-400" />
-            </div>
-          ) : (
-            <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
-              <LinkIcon className="h-5 w-5 text-gray-400" />
-            </div>
-          )}
-          <div className="flex flex-col">
-            <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-sky-600 hover:underline line-clamp-1">{attachment.title || attachment.url}</a>
-            <span className="text-xs text-gray-500 mt-0.5">{attachment.type === "image" ? "Image" : attachment.type === "document" ? "Document" : "Link"}</span>
-            {(attachment.type === "image" || attachment.type === "document") && (
-              <div className="flex items-center gap-x-3 mt-1.5">
-                {attachment.type === "image" && (
-                  <button type="button" onClick={(e) => handleView(e, attachment.url)} className="text-[10px] font-medium flex items-center text-gray-500 hover:text-gray-900 transition">
-                    <ExternalLink className="h-3 w-3 mr-1" /> View
-                  </button>
-                )}
-                <a href={attachment.url} download={attachment.title || "file"} className="text-[10px] font-medium flex items-center text-gray-500 hover:text-gray-900 transition">
-                  <Download className="h-3 w-3 mr-1" /> Download
-                </a>
-              </div>
-            )}
-          </div>
+    <div className="space-y-2">
+      {cardData?.attachments?.map((attachment: any) => (
+        <div key={attachment.id} className="flex items-center justify-between p-2 rounded-lg border border-gray-200 bg-white">
+          <a
+            href={attachment.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-x-2 truncate hover:underline text-sm font-medium text-blue-600 flex-1"
+          >
+            <Paperclip className="h-4 w-4 text-gray-500 flex-shrink-0" />
+            <span className="truncate">{attachment.title || attachment.url}</span>
+          </a>
+          <Button
+            onClick={() => onDeleteAttachment(attachment.id)}
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-gray-500 hover:text-red-500"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
-        <Button onClick={() => onDeleteAttachment(attachment.id)} variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition text-red-500">
-          <Trash2 className="h-3 w-3" />
-        </Button>
-      </div>
-    ))}
+      ))}
+    </div>
 
     {isAddingLink && (
       <div className="flex items-center gap-x-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
@@ -562,12 +572,24 @@ const CommentsSection = ({ cardData, memberships, onAddCommentWithMentions, onDe
 export const CardModal = () => {
   const queryClient = useQueryClient();
   const params = useParams();
+  const router = useRouter();
+  const pathname = usePathname();
   
   const searchParams = useSearchParams();
   const id = useCardModal((state) => state.id);
   const isOpen = useCardModal((state) => state.isOpen);
   const onOpen = useCardModal((state) => state.onOpen);
   const onClose = useCardModal((state) => state.onClose);
+
+  const handleCloseModal = () => {
+    onClose();
+    if (searchParams?.get("cardId")) {
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete("cardId");
+      const query = newParams.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    }
+  };
 
   useEffect(() => {
     const cardIdFromUrl = searchParams?.get("cardId");
@@ -576,7 +598,7 @@ export const CardModal = () => {
     }
   }, [searchParams, onOpen]);
 
-  const { data: cardData } = useQuery<CardWithList>({
+  const { data: cardData, isLoading } = useQuery<CardWithList>({
     queryKey: ["card", id],
     queryFn: () => fetcher(`/api/cards/${id}`),
     enabled: !!id,
@@ -585,6 +607,7 @@ export const CardModal = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("Low");
+  const [status, setStatus] = useState("PENDING");
   const [subtaskTitle, setSubtaskTitle] = useState("");
 
   const [isAddingLink, setIsAddingLink] = useState(false);
@@ -623,6 +646,7 @@ export const CardModal = () => {
       setTitle(cardData.title || "");
       setDescription(cardData.description || "");
       setPriority(cardData.priority || "Low");
+      setStatus(cardData.status || "PENDING");
     }
   }, [cardData]);
 
@@ -739,6 +763,13 @@ export const CardModal = () => {
     executeUpdateCard({ id: cardData.id, boardId: params.boardId as string, priority: val });
   };
 
+  const onStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (!cardData) return;
+    const val = e.target.value;
+    setStatus(val);
+    executeUpdateCard({ id: cardData.id, boardId: params.boardId as string, status: val });
+  };
+
   const onAddSubtask = () => {
     if (!subtaskTitle.trim() || !cardData) return;
     executeCreateSubtask({ title: subtaskTitle, cardId: cardData.id, boardId: params.boardId as string });
@@ -824,91 +855,112 @@ export const CardModal = () => {
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-[400px] sm:w-[540px] sm:max-w-md p-0 overflow-hidden flex flex-col bg-white">
+    <Sheet open={isOpen} onOpenChange={handleCloseModal}>
+      <SheetContent 
+        side="right" 
+        className="w-full sm:max-w-[460px] p-0 overflow-hidden flex flex-col bg-white border-l shadow-2xl"
+      >
         <SheetHeader className="px-6 py-4 border-b flex flex-row items-center justify-between sticky top-0 bg-white z-10">
           <SheetTitle className="text-sm font-semibold text-gray-800">Task Detail</SheetTitle>
           <div className="flex items-center gap-x-2">
-            <Button onClick={onDeleteCard} variant="ghost" size="icon" className="h-8 w-8 rounded-full border text-red-500 hover:text-red-600 hover:bg-red-50">
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {cardData && (
+              <Button onClick={onDeleteCard} variant="ghost" size="icon" className="h-8 w-8 rounded-full border text-red-500 hover:text-red-600 hover:bg-red-50">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto custom-sidebar-scrollbar p-6 space-y-8">
-          <HeaderSection
-            title={title}
-            setTitle={setTitle}
-            onTitleBlur={onTitleBlur}
-            description={description}
-            setDescription={setDescription}
-            onDescriptionBlur={onDescriptionBlur}
-          />
-          <MetadataSection
-            cardData={cardData}
-            priority={priority}
-            onPriorityChange={onPriorityChange}
-            executeUpdateCard={executeUpdateCard}
-            params={params}
-            memberships={memberships}
-            isAssigneeOpen={isAssigneeOpen}
-            setIsAssigneeOpen={setIsAssigneeOpen}
-            onToggleAssignee={onToggleAssignee}
-            isTagOpen={isTagOpen}
-            setIsTagOpen={setIsTagOpen}
-            orgTags={orgTags}
-            newTagName={newTagName}
-            setNewTagName={setNewTagName}
-            newTagColor={newTagColor}
-            setNewTagColor={setNewTagColor}
-            onCreateNewTag={() => {
-              if (!newTagName.trim()) return;
-              executeCreateTag({ name: newTagName, color: newTagColor });
-            }}
-            onToggleTag={(tagId: string) => {
-              if (!cardData) return;
-              executeToggleCardTag({ cardId: cardData.id, tagId, boardId: params.boardId as string });
-            }}
-          />
-          <div className="w-full h-px bg-gray-100" />
-          <SubtasksSection
-            cardData={cardData}
-            subtaskTitle={subtaskTitle}
-            setSubtaskTitle={setSubtaskTitle}
-            onAddSubtask={onAddSubtask}
-            onToggleSubtask={onToggleSubtask}
-            onDeleteSubtask={onDeleteSubtask}
-          />
-          <div className="w-full h-px bg-gray-100" />
-          <AttachmentsSection
-            cardData={cardData}
-            isAddingLink={isAddingLink}
-            setIsAddingLink={setIsAddingLink}
-            linkUrl={linkUrl}
-            setLinkUrl={setLinkUrl}
-            onSubmitLink={onSubmitLink}
-            onImageUpload={onImageUpload}
-            fileInputRef={fileInputRef}
-            docInputRef={docInputRef}
-            onDocumentUpload={onDocumentUpload}
-            onDeleteAttachment={onDeleteAttachment}
-          />
-          <div className="w-full h-px bg-gray-100" />
-          <CommentsSection
-            cardData={cardData}
-            memberships={memberships}
-            onAddCommentWithMentions={(text: string, mentionedUserIds: string[]) => {
-              if (!text.trim() || !cardData) return;
-              executeCreateComment({
-                text,
-                cardId: cardData.id,
-                boardId: params.boardId as string,
-                mentionedUserIds,
-              });
-            }}
-            onDeleteComment={onDeleteComment}
-          />
-        </div>
+        {isLoading || !cardData ? (
+          <div className="flex-1 p-6 space-y-6">
+            <Skeleton className="h-10 w-3/4 rounded-lg" />
+            <Skeleton className="h-28 w-full rounded-lg" />
+            <div className="grid grid-cols-[100px_1fr] gap-4">
+              <Skeleton className="h-8 w-20 rounded" />
+              <Skeleton className="h-8 w-32 rounded-lg" />
+              <Skeleton className="h-8 w-20 rounded" />
+              <Skeleton className="h-8 w-32 rounded-lg" />
+            </div>
+            <Skeleton className="h-36 w-full rounded-lg" />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto custom-sidebar-scrollbar p-6 space-y-8">
+            <HeaderSection
+              title={title}
+              setTitle={setTitle}
+              onTitleBlur={onTitleBlur}
+              description={description}
+              setDescription={setDescription}
+              onDescriptionBlur={onDescriptionBlur}
+            />
+            <MetadataSection
+              cardData={cardData}
+              priority={priority}
+              onPriorityChange={onPriorityChange}
+              status={status}
+              onStatusChange={onStatusChange}
+              executeUpdateCard={executeUpdateCard}
+              params={params}
+              memberships={memberships}
+              isAssigneeOpen={isAssigneeOpen}
+              setIsAssigneeOpen={setIsAssigneeOpen}
+              onToggleAssignee={onToggleAssignee}
+              isTagOpen={isTagOpen}
+              setIsTagOpen={setIsTagOpen}
+              orgTags={orgTags}
+              newTagName={newTagName}
+              setNewTagName={setNewTagName}
+              newTagColor={newTagColor}
+              setNewTagColor={setNewTagColor}
+              onCreateNewTag={() => {
+                if (!newTagName.trim()) return;
+                executeCreateTag({ name: newTagName, color: newTagColor });
+              }}
+              onToggleTag={(tagId: string) => {
+                if (!cardData) return;
+                executeToggleCardTag({ cardId: cardData.id, tagId, boardId: params.boardId as string });
+              }}
+            />
+            <div className="w-full h-px bg-gray-100" />
+            <SubtasksSection
+              cardData={cardData}
+              subtaskTitle={subtaskTitle}
+              setSubtaskTitle={setSubtaskTitle}
+              onAddSubtask={onAddSubtask}
+              onToggleSubtask={onToggleSubtask}
+              onDeleteSubtask={onDeleteSubtask}
+            />
+            <div className="w-full h-px bg-gray-100" />
+            <AttachmentsSection
+              cardData={cardData}
+              isAddingLink={isAddingLink}
+              setIsAddingLink={setIsAddingLink}
+              linkUrl={linkUrl}
+              setLinkUrl={setLinkUrl}
+              onSubmitLink={onSubmitLink}
+              onImageUpload={onImageUpload}
+              fileInputRef={fileInputRef}
+              docInputRef={docInputRef}
+              onDocumentUpload={onDocumentUpload}
+              onDeleteAttachment={onDeleteAttachment}
+            />
+            <div className="w-full h-px bg-gray-100" />
+            <CommentsSection
+              cardData={cardData}
+              memberships={memberships}
+              onAddCommentWithMentions={(text: string, mentionedUserIds: string[]) => {
+                if (!text.trim() || !cardData) return;
+                executeCreateComment({
+                  text,
+                  cardId: cardData.id,
+                  boardId: params.boardId as string,
+                  mentionedUserIds,
+                });
+              }}
+              onDeleteComment={onDeleteComment}
+            />
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

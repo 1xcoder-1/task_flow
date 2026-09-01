@@ -41,13 +41,11 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
     getSnapshotServer
   );
   const [orderedData, setOrderedData] = useState(data);
-  const [prevData, setPrevData] = useState(data);
   const [activeTagId, setActiveTagId] = useState<string | null>(null);
 
-  if (data !== prevData) {
-    setPrevData(data);
+  useEffect(() => {
     setOrderedData(data);
-  }
+  }, [data]);
 
   // Extract all unique tags on cards in this board
   const allBoardTags = Array.from(

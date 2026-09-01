@@ -7,6 +7,7 @@ import { inngest } from "@/inngest/client";
 import { FolderAuthWrapper } from "./_components/folder-auth-wrapper";
 import { YearFolderList } from "./_components/year-folder-list";
 import { BoardCardOptionsModal } from "@/components/modals/board-card-options-modal";
+import { BoardLink } from "@/components/board-link";
 
 import { auth } from "@clerk/nextjs/server";
 
@@ -47,7 +48,7 @@ const FolderIdPage = async ({ params }: FolderIdPageProps) => {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             <div key={impBoard.id} className="group relative aspect-video bg-sky-700 rounded-xl shadow-sm h-full w-full overflow-hidden hover:shadow-md transition">
-              <Link
+              <BoardLink
                 href={`/board/${impBoard.id}`}
                 style={{ backgroundImage: `url(${impBoard.imageThumbUrl})` }}
                 className="absolute inset-0 block h-full w-full bg-no-repeat bg-center bg-cover"
@@ -59,7 +60,7 @@ const FolderIdPage = async ({ params }: FolderIdPageProps) => {
                 <div className="relative p-3 h-full flex flex-col justify-between pointer-events-none">
                   <p className="font-semibold text-white drop-shadow-md tracking-wide">{impBoard.title}</p>
                 </div>
-              </Link>
+              </BoardLink>
             </div>
           </div>
         </div>
@@ -68,17 +69,14 @@ const FolderIdPage = async ({ params }: FolderIdPageProps) => {
   }
   
   if (folder && folder.title !== "Important") {
-    try {
-      await inngest.send({
-        name: "app/folder.init",
-        data: {
-          orgId: organizationId,
-          folderId: folder.id,
-        },
-      });
-    } catch (error) {
-      console.error("Failed to send inngest event:", error);
-    }
+    // Fire-and-forget: don't block page render waiting for Inngest
+    inngest.send({
+      name: "app/folder.init",
+      data: {
+        orgId: organizationId,
+        folderId: folder.id,
+      },
+    }).catch((e) => console.error("Inngest folder.init failed:", e));
   }
   const hasAccess = folder?.accesses.some((a) => a.userId === userId);
 
@@ -105,6 +103,7 @@ const FolderIdPage = async ({ params }: FolderIdPageProps) => {
     <div className="w-full mb-20">
       <Link 
         href={`/organization/${organizationId}`}
+        prefetch={true}
         className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-800 transition mb-4 ml-1 bg-white/50 px-3 py-1.5 rounded-full border border-slate-200 shadow-sm backdrop-blur-sm"
       >
         <ArrowLeft className="h-4 w-4 mr-1.5" />

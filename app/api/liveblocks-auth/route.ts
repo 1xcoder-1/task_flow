@@ -1,6 +1,8 @@
 import { Liveblocks } from "@liveblocks/node";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
+import { db } from "@/lib/db";
 
 const liveblocks = new Liveblocks({
   secret: process.env.LIVEBLOCKS_SECRET_KEY!,
@@ -17,30 +19,46 @@ const COLORS = [
   "#7986CB",
 ];
 
+const getBoardOrganization = unstable_cache(
+  (boardId: string) => db.board.findUnique({
+    where: { id: boardId },
+    select: { orgId: true },
+  }),
+  ["liveblocks-board-organization"],
+  { revalidate: 60 }
+);
+
 export async function POST(request: Request) {
   try {
-    const { userId, sessionClaims } = await auth();
+    const { userId, orgId, sessionClaims } = await auth();
 
-    if (!userId) {
+    if (!userId || !orgId) {
       return new NextResponse("Unauthorized", { status: 403 });
     }
 
-    // Try to get current user with a fast 1s timeout to avoid blocking Liveblocks auth
-    let user: any = null;
-    try {
-      user = await Promise.race([
-        currentUser(),
-        new Promise((resolve) => setTimeout(() => resolve(null), 1000)),
-      ]);
-    } catch (e) {
-      console.warn("Clerk currentUser fetch failed during Liveblocks auth:", e);
+    const { room } = await request.json();
+    if (typeof room !== "string") {
+      return new NextResponse("Invalid room", { status: 400 });
     }
 
-    const userName = user?.firstName
-      ? `${user.firstName} ${user.lastName || ""}`.trim()
-      : (sessionClaims as any)?.name || (sessionClaims as any)?.email || "User";
+    const isOrganizationRoom = room === orgId;
+    const board = !isOrganizationRoom
+      ? await getBoardOrganization(room)
+      : null;
 
-    const userAvatar = user?.imageUrl || (sessionClaims as any)?.picture || null;
+    if (!isOrganizationRoom && board?.orgId !== orgId) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
+    const { clerkClient } = await import("@clerk/nextjs/server");
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId).catch(() => null);
+
+    const claims = sessionClaims as any;
+    const userName = user
+      ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username || user.emailAddresses?.[0]?.emailAddress || "User"
+      : claims?.name || [claims?.first_name, claims?.last_name].filter(Boolean).join(" ") || claims?.email || "User";
+    const userAvatar = user?.imageUrl || claims?.picture || claims?.image_url || null;
 
     // Generate a random color for the user based on their ID
     const colorIndex = Math.abs(
@@ -60,7 +78,7 @@ export async function POST(request: Request) {
       }
     );
 
-    session.allow(`*`, session.FULL_ACCESS);
+    session.allow(room, session.FULL_ACCESS);
 
     const { status, body } = await session.authorize();
     return new NextResponse(body, { status, headers: { "Content-Type": "application/json" } });

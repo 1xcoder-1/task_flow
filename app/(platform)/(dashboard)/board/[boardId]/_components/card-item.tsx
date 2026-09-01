@@ -44,8 +44,8 @@ export const CardItem = ({ data, index }: CardItemProps) => {
   };
 
 
-  const attachmentsCount = cardData.attachments?.length || 0;
-  const commentsCount = cardData.comments?.length || 0;
+  const attachmentsCount = cardData._count?.attachments ?? cardData.attachments?.length ?? 0;
+  const commentsCount = cardData._count?.comments ?? cardData.comments?.length ?? 0;
   const assignments = cardData.assignments || [];
 
   return (
@@ -57,22 +57,24 @@ export const CardItem = ({ data, index }: CardItemProps) => {
           ref={provided.innerRef}
           role="button"
           onClick={() => cardModal.onOpen(data.id)}
-          className="group relative flex flex-col gap-y-3 bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-3.5 shadow-sm transition"
+          className={`group relative flex flex-col gap-y-3 border rounded-xl p-3.5 shadow-sm transition ${cardData.status === "DONE" ? "bg-emerald-50/50 border-emerald-100 opacity-80" : "bg-white border-gray-200 hover:border-gray-300"}`}
         >
           {/* Card Title & Description */}
           <div className="flex flex-col gap-1.5 text-black">
             <div className="flex items-start gap-x-2">
-              <div className="relative z-20 flex shrink-0 mt-0.5">
-                <input
-                  aria-label="Toggle card active status"
-                  type="checkbox"
-                  checked={cardData.isActive || false}
-                  readOnly
-                  onClick={onToggleActive}
-                  className="w-4 h-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500 cursor-pointer"
-                />
-              </div>
-              <h3 className="font-semibold text-[15px] leading-tight">
+              {cardData.status !== "DONE" && (
+                <div className="relative z-20 flex shrink-0 mt-0.5">
+                  <input
+                    aria-label="Toggle card active status"
+                    type="checkbox"
+                    checked={cardData.isActive || false}
+                    readOnly
+                    onClick={onToggleActive}
+                    className="w-4 h-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500 cursor-pointer"
+                  />
+                </div>
+              )}
+              <h3 className={`font-semibold text-[15px] leading-tight ${cardData.status === "DONE" ? "line-through text-gray-500" : ""}`}>
                 {data.title}
               </h3>
             </div>

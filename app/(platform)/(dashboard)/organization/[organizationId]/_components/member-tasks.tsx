@@ -21,7 +21,8 @@ export const MemberTasksDashboard = () => {
       return res.data || [];
     },
     enabled: !!organization?.id && !!user?.id && !isAdmin,
-    refetchInterval: 5000,
+    staleTime: 30_000,
+    refetchInterval: 30_000,
   });
 
   if (!isOrgLoaded) {
@@ -50,6 +51,7 @@ export const MemberTasksDashboard = () => {
   }
 
   const isCardCompleted = (c: any) => {
+    if (c.status === "DONE") return true;
     const listTitle = c.list?.title?.toLowerCase() || "";
     return listTitle.includes("done") || listTitle.includes("complete");
   };
@@ -86,80 +88,84 @@ export const MemberTasksDashboard = () => {
       {/* 4 Cool Simple Member Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
         {/* Pending Tasks */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50/70 border border-amber-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">
+        <div className="relative overflow-hidden bg-white/80 backdrop-blur-sm border border-amber-200/50 rounded-2xl p-5 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.1)] transition-all duration-300 flex flex-col justify-between group min-h-[140px]">
+          <div className="absolute -right-6 -top-6 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition-colors duration-500" />
+          <div className="flex items-start justify-between relative z-10">
+            <span className="text-[11px] font-semibold text-amber-800/70 uppercase tracking-widest">
               Pending Tasks
             </span>
-            <div className="p-2 bg-amber-500/10 text-amber-600 rounded-xl">
+            <div className="p-2.5 bg-amber-50/80 text-amber-600 rounded-xl group-hover:bg-amber-100/80 transition-colors">
               <Clock className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline justify-between">
-            <span className="text-2xl sm:text-3xl font-extrabold text-amber-950">
+          <div className="mt-4 flex items-end justify-between relative z-10">
+            <span className="text-3xl sm:text-4xl font-bold text-amber-950 tracking-tight">
               {pendingCards.length}
             </span>
-            <span className="text-[11px] font-semibold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200">
+            <span className="text-[11px] font-medium text-amber-700 bg-amber-100/50 px-2.5 py-1 rounded-full border border-amber-200/50">
               To Do
             </span>
           </div>
         </div>
 
         {/* Total Assigned */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-sky-50 to-blue-50/70 border border-sky-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-sky-800 uppercase tracking-wider">
+        <div className="relative overflow-hidden bg-white/80 backdrop-blur-sm border border-blue-200/50 rounded-2xl p-5 shadow-[0_2px_10px_-3px_rgba(59,130,246,0.1)] transition-all duration-300 flex flex-col justify-between group min-h-[140px]">
+          <div className="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-colors duration-500" />
+          <div className="flex items-start justify-between relative z-10">
+            <span className="text-[11px] font-semibold text-blue-800/70 uppercase tracking-widest">
               Total Assigned
             </span>
-            <div className="p-2 bg-sky-500/10 text-sky-600 rounded-xl">
+            <div className="p-2.5 bg-blue-50/80 text-blue-600 rounded-xl group-hover:bg-blue-100/80 transition-colors">
               <Layers className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline justify-between">
-            <span className="text-2xl sm:text-3xl font-extrabold text-sky-950">
+          <div className="mt-4 flex items-end justify-between relative z-10">
+            <span className="text-3xl sm:text-4xl font-bold text-blue-950 tracking-tight">
               {totalAssignedTasks}
             </span>
-            <span className="text-[11px] font-semibold text-sky-700 bg-sky-100/80 px-2 py-0.5 rounded-full border border-sky-200">
+            <span className="text-[11px] font-medium text-blue-700 bg-blue-100/50 px-2.5 py-1 rounded-full border border-blue-200/50">
               Total
             </span>
           </div>
         </div>
 
         {/* Completed Tasks */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50/70 border border-emerald-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
+        <div className="relative overflow-hidden bg-white/80 backdrop-blur-sm border border-emerald-200/50 rounded-2xl p-5 shadow-[0_2px_10px_-3px_rgba(16,185,129,0.1)] transition-all duration-300 flex flex-col justify-between group min-h-[140px]">
+          <div className="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition-colors duration-500" />
+          <div className="flex items-start justify-between relative z-10">
+            <span className="text-[11px] font-semibold text-emerald-800/70 uppercase tracking-widest">
               Completed Tasks
             </span>
-            <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl">
+            <div className="p-2.5 bg-emerald-50/80 text-emerald-600 rounded-xl group-hover:bg-emerald-100/80 transition-colors">
               <CheckCircle2 className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline justify-between">
-            <span className="text-2xl sm:text-3xl font-extrabold text-emerald-950">
+          <div className="mt-4 flex items-end justify-between relative z-10">
+            <span className="text-3xl sm:text-4xl font-bold text-emerald-950 tracking-tight">
               {completedCards.length}
             </span>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
+            <span className="text-[11px] font-medium text-emerald-700 bg-emerald-100/50 px-2.5 py-1 rounded-full border border-emerald-200/50">
               Finished
             </span>
           </div>
         </div>
 
         {/* Work Completion % */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-purple-50 to-indigo-50/70 border border-purple-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-purple-800 uppercase tracking-wider">
+        <div className="relative overflow-hidden bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-2xl p-5 shadow-[0_2px_10px_-3px_rgba(168,85,247,0.1)] transition-all duration-300 flex flex-col justify-between group min-h-[140px]">
+          <div className="absolute -right-6 -top-6 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-colors duration-500" />
+          <div className="flex items-start justify-between relative z-10">
+            <span className="text-[11px] font-semibold text-purple-800/70 uppercase tracking-widest">
               Work Completion
             </span>
-            <div className="p-2 bg-purple-500/10 text-purple-600 rounded-xl">
+            <div className="p-2.5 bg-purple-50/80 text-purple-600 rounded-xl group-hover:bg-purple-100/80 transition-colors">
               <TrendingUp className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-3 flex items-baseline justify-between">
-            <span className="text-2xl sm:text-3xl font-extrabold text-purple-950">
+          <div className="mt-4 flex items-end justify-between relative z-10">
+            <span className="text-3xl sm:text-4xl font-bold text-purple-950 tracking-tight">
               {completionPercentage}%
             </span>
-            <span className="text-[11px] font-semibold text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded-full border border-purple-200">
+            <span className="text-[11px] font-medium text-purple-700 bg-purple-100/50 px-2.5 py-1 rounded-full border border-purple-200/50">
               Progress
             </span>
           </div>

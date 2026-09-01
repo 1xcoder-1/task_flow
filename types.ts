@@ -6,6 +6,11 @@ export type CardWithRelations = Card & {
   assignments?: CardAssignment[];
   subtasks?: Subtask[];
   tags?: any[];
+  _count?: {
+    attachments: number;
+    comments: number;
+    subtasks: number;
+  };
 };
 
 export type ListWithCards = List & { cards: CardWithRelations[] };

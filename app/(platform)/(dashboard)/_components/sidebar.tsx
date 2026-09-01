@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, ChevronLeft } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
-import {
-  ClerkLoaded,
-  ClerkLoading,
-  useOrganization,
-  useOrganizationList,
-} from "@clerk/nextjs";
+import { useSidebar } from "@/hooks/use-sidebar";
+import { useOrganization, useOrganizationList } from "@clerk/nextjs";
 
 import { buttonVariants } from "@/components/ui/button-variants";
 import { Separator } from "@/components/ui/separator";
@@ -22,7 +19,22 @@ type SidebarProps = {
   storageKey?: string;
 };
 
+const SidebarSkeleton = () => (
+  <>
+    <div className="flex items-center justify-between mb-2">
+      <Skeleton className="h-10 w-[50%]" />
+      <Skeleton className="h-10 w-10" />
+    </div>
+    <div className="space-y-2">
+      <NavItem.Skeleton />
+      <NavItem.Skeleton />
+      <NavItem.Skeleton />
+    </div>
+  </>
+);
+
 export const Sidebar = ({ storageKey = "t-sidebar-state" }: SidebarProps) => {
+  const [mounted, setMounted] = useState(false);
   const [expanded, setExpanded] = useLocalStorage<Record<string, any>>(
     storageKey,
     {}
@@ -56,58 +68,59 @@ export const Sidebar = ({ storageKey = "t-sidebar-state" }: SidebarProps) => {
     }));
   };
 
-  if (!isLoadedOrg || !isLoadedOrgList || userMemberships.isLoading) {
-    return (
-      <ClerkLoading>
-        <div className="flex items-center justify-between mb-2">
-          <Skeleton className="h-10 w-[50%]" />
-          <Skeleton className="h-10 w-10" />
-        </div>
+  const { collapse } = useSidebar();
 
-        <div className="space-y-2">
-          <NavItem.Skeleton />
-          <NavItem.Skeleton />
-          <NavItem.Skeleton />
-        </div>
-      </ClerkLoading>
-    );
-  }
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted || !isLoadedOrg || !isLoadedOrgList || userMemberships.isLoading) return <SidebarSkeleton />;
 
   return (
     <>
       <div className="flex items-center mb-4 text-slate-500">
         <span className="pl-4 text-xs font-semibold tracking-wider uppercase">Workspaces</span>
-        {isAdmin && (
-          <Link
-            href="/select-org"
+        <div className="ml-auto flex items-center gap-x-1">
+          {isAdmin && (
+            <Link
+              href="/select-org"
+              className={cn(
+                buttonVariants({
+                  size: "icon",
+                  variant: "ghost",
+                }),
+                "h-8 w-8 text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+              )}
+            >
+              <Plus className="h-4 w-4" />
+            </Link>
+          )}
+          <button
+            onClick={collapse}
             className={cn(
               buttonVariants({
                 size: "icon",
                 variant: "ghost",
               }),
-              "ml-auto h-8 w-8 text-slate-500 hover:text-slate-800 hover:bg-slate-100"
+              "h-8 w-8 text-slate-500 hover:text-slate-800 hover:bg-slate-100 hidden md:flex"
             )}
           >
-            <Plus className="h-4 w-4" />
-          </Link>
-        )}
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        </div>
       </div>
       <Accordion
         type="multiple"
         defaultValue={defaultAccordionValue}
         className="space-y-2"
       >
-        <ClerkLoaded>
-          {userMemberships.data.map(({ organization }) => (
-            <NavItem
-              key={organization.id}
-              isActive={activeOrganization?.id === organization.id}
-              isExpanded={expanded[organization.id]}
-              organization={organization as Organization}
-              onExpand={onExpand}
-            />
-          ))}
-        </ClerkLoaded>
+        {userMemberships.data.map(({ organization }) => (
+          <NavItem
+            key={organization.id}
+            isActive={activeOrganization?.id === organization.id}
+            isExpanded={expanded[organization.id]}
+            organization={organization as Organization}
+            onExpand={onExpand}
+          />
+        ))}
       </Accordion>
     </>
   );

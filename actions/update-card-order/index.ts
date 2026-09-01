@@ -34,17 +34,37 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   }
 
   try {
-    const transaction = items.map((card) =>
-      db.card.update({
+    const lists = await db.list.findMany({
+      where: { boardId },
+      select: { id: true, title: true },
+    });
+    const listMap = new Map(lists.map(l => [l.id, l.title.toLowerCase()]));
+
+    const transaction = items.map((card) => {
+      const listTitle = listMap.get(card.listId) || "";
+      let isActive = undefined;
+      let status = undefined;
+
+      if (listTitle.includes("in progress")) {
+        isActive = true;
+        status = "IN_PROGRESS";
+      } else if (listTitle.includes("done")) {
+        isActive = false;
+        status = "DONE";
+      }
+
+      return db.card.update({
         where: {
           id: card.id,
         },
         data: {
           order: card.order,
           listId: card.listId,
+          ...(isActive !== undefined && { isActive }),
+          ...(status !== undefined && { status }),
         },
-      })
-    );
+      });
+    });
 
     updatedCards = await db.$transaction(transaction);
   } catch (error) {

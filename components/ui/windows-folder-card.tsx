@@ -16,6 +16,7 @@ export const WindowsFolderCard = ({
     <div className="group relative flex flex-col w-40 items-center">
       <Link
         href={href}
+        prefetch={true}
         className="w-full rounded-md hover:bg-black/5 p-1 pb-1 transition flex flex-col items-center justify-center"
       >
         <div className="relative aspect-square w-full rounded-lg border border-slate-200 bg-slate-50 shadow-sm overflow-hidden flex items-center justify-center">
@@ -25,6 +26,7 @@ export const WindowsFolderCard = ({
       <div className="flex items-center justify-center pt-1 overflow-visible w-full px-1 relative">
         <Link
           href={href}
+          prefetch={true}
           className="font-medium text-sm text-neutral-700 truncate hover:bg-blue-500 hover:text-white px-1.5 py-0.5 rounded transition text-center max-w-[85%]"
         >
           {title}

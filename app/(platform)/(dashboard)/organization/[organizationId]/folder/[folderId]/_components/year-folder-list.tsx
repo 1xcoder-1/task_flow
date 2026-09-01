@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { Folder } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,19 +16,21 @@ interface YearFolderListProps {
   folderId: string;
 }
 
+const getYearFolders = unstable_cache(
+  (folderId: string) => db.yearFolder.findMany({
+    where: { folderId },
+    orderBy: { createdAt: "desc" },
+  }),
+  ["year-folders"],
+  { revalidate: 30 }
+);
+
 export const YearFolderList = async ({ folderId }: YearFolderListProps) => {
   const { orgId } = await auth();
 
   if (!orgId) return redirect("/select-org");
 
-  const yearFolders = await db.yearFolder.findMany({
-    where: {
-      folderId,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const yearFolders = await getYearFolders(folderId);
 
   return (
     <div className="space-y-4">

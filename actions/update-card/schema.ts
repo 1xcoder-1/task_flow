@@ -21,6 +21,7 @@ export const UpdateCard = z.object({
       }),
   ),
   isActive: z.optional(z.boolean()),
+  status: z.optional(z.string()),
   priority: z.optional(z.string()),
   dueDate: z.optional(z.coerce.date().nullable()),
   id: z.string(),

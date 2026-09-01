@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { Folder } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,19 +16,21 @@ interface DayFolderListProps {
   folderId: string;
 }
 
+const getDayFolders = unstable_cache(
+  (monthFolderId: string) => db.dayFolder.findMany({
+    where: { monthFolderId },
+    orderBy: { createdAt: "desc" },
+  }),
+  ["day-folders"],
+  { revalidate: 30 }
+);
+
 export const DayFolderList = async ({ monthFolderId, yearFolderId, organizationId, folderId }: DayFolderListProps) => {
   const { orgId } = await auth();
 
   if (!orgId) return redirect("/select-org");
 
-  const dayFolders = await db.dayFolder.findMany({
-    where: {
-      monthFolderId,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const dayFolders = await getDayFolders(monthFolderId);
 
   return (
     <div className="space-y-4">

@@ -19,7 +19,20 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   let attachment;
 
   try {
-    const card = await db.card.findUnique({ where: { id: cardId } });
+    const card = await db.card.findUnique({
+      where: {
+        id: cardId,
+        list: { board: { orgId } },
+      },
+      select: {
+        linkedCardId: true,
+        list: { select: { boardId: true } },
+      },
+    });
+
+    if (!card || card.list.boardId !== boardId) {
+      return { error: "Card not found or unauthorized." };
+    }
 
     attachment = await db.attachment.create({
       data: {

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";;
 
 import { BoardNavbar } from "./_components/board-navbar";
-import { db } from "@/lib/db";
+import { getBoard } from "@/lib/get-board";
 import { LiveblocksAppProvider } from "@/components/providers/liveblocks-provider";
 import { LiveblocksRoomProvider } from "@/components/providers/liveblocks-room-provider";
 
@@ -15,12 +15,7 @@ export async function generateMetadata({
 
   if (!orgId) return { title: "Board" };
 
-  const board = await db.board.findUnique({
-    where: {
-      id: boardId,
-      orgId,
-    },
-  });
+  const board = await getBoard(boardId, orgId);
 
   return {
     title: board?.title || "Board",
@@ -38,25 +33,22 @@ const BoardIdLayout = async ({
 
   if (!orgId) redirect("/select-org");
 
-  const board = await db.board.findUnique({
-    where: {
-      id: boardId,
-      orgId,
-    },
-  });
+  const board = await getBoard(boardId, orgId);
 
   if (!board) notFound();
 
   return (
     <LiveblocksAppProvider>
-      <LiveblocksRoomProvider roomId={boardId}>
-        <div
-          style={{ backgroundImage: `url(${board.imageFullUrl})` }}
-          className="relative h-full bg-no-repeat bg-cover bg-center"
-        >
-          <div aria-hidden className="absolute inset-0 bg-black/10" />
-          <main className="relative h-full">{children}</main>
-        </div>
+      <LiveblocksRoomProvider roomId={board.orgId}>
+        <LiveblocksRoomProvider roomId={boardId}>
+          <div
+            style={{ backgroundImage: `url(${board.imageFullUrl})` }}
+            className="relative h-full bg-no-repeat bg-cover bg-center"
+          >
+            <div aria-hidden className="absolute inset-0 bg-black/10" />
+            <main className="relative h-full">{children}</main>
+          </div>
+        </LiveblocksRoomProvider>
       </LiveblocksRoomProvider>
     </LiveblocksAppProvider>
   );

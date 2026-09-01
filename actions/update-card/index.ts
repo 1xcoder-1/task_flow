@@ -21,6 +21,18 @@ const handler = async (data: InputType): Promise<ReturnType> => {
 
   const { id, boardId, ...values } = data;
 
+  const updateData: any = { ...values };
+
+  if (values.status) {
+    if (values.status === "DONE") {
+      updateData.isActive = false;
+    } else if (values.status === "IN_PROGRESS") {
+      updateData.isActive = true;
+    } else if (values.status === "PENDING") {
+      updateData.isActive = false;
+    }
+  }
+
   let card;
 
   try {
@@ -33,9 +45,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
           },
         },
       },
-      data: {
-        ...values,
-      },
+      data: updateData,
     });
 
     // create new activity log
