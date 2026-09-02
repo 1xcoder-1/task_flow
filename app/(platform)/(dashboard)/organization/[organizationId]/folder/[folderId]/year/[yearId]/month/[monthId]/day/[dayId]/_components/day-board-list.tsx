@@ -14,8 +14,8 @@ interface DayBoardListProps {
 }
 
 const getDayBoards = unstable_cache(
-  (orgId: string, dayFolderId: string) => db.board.findMany({
-    where: { orgId, dayFolderId },
+  (orgId: string, dayFolderId: string) => (db.board as any).findMany({
+    where: { orgId, dayFolderId, isArchived: false },
     orderBy: { createdAt: "desc" },
   }),
   ["day-boards"],
@@ -37,7 +37,7 @@ export const DayBoardList = async ({ dayFolderId }: DayBoardListProps) => {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {boards.map((board) => (
+        {boards.map((board: any) => (
           <div key={board.id} className="group relative aspect-video bg-sky-700 rounded-xl shadow-sm h-full w-full overflow-hidden hover:shadow-md transition">
             <BoardLink
               href={`/board/${board.id}`}

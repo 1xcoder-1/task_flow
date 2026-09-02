@@ -17,12 +17,14 @@ interface DayFolderListProps {
 }
 
 const getDayFolders = unstable_cache(
-  (monthFolderId: string) => db.dayFolder.findMany({
-    where: { monthFolderId },
-    orderBy: { createdAt: "desc" },
-  }),
+  async (monthFolderId: string) => {
+    return (db.dayFolder as any).findMany({
+      where: { monthFolderId, isArchived: false },
+      orderBy: { createdAt: "desc" },
+    });
+  },
   ["day-folders"],
-  { revalidate: 30 }
+  { revalidate: 5, tags: ["folders"] }
 );
 
 export const DayFolderList = async ({ monthFolderId, yearFolderId, organizationId, folderId }: DayFolderListProps) => {
@@ -40,7 +42,7 @@ export const DayFolderList = async ({ monthFolderId, yearFolderId, organizationI
       </div>
 
       <div className="flex flex-wrap gap-3 -ml-2">
-        {dayFolders.map((dayFolder) => (
+        {dayFolders.map((dayFolder: any) => (
           <WindowsFolderCard 
             key={dayFolder.id}
             href={`/organization/${organizationId}/folder/${folderId}/year/${yearFolderId}/month/${monthFolderId}/day/${dayFolder.id}`}

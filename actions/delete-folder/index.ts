@@ -30,10 +30,14 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   let folder;
 
   try {
-    folder = await db.folder.delete({
+    folder = await (db.folder as any).update({
       where: {
         id,
         orgId,
+      },
+      data: {
+        isArchived: true,
+        deletedAt: new Date(),
       },
     });
 

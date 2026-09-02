@@ -25,10 +25,14 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   let board;
 
   try {
-    board = await db.board.delete({
+    board = await (db.board as any).update({
       where: {
         id,
         orgId,
+      },
+      data: {
+        isArchived: true,
+        deletedAt: new Date(),
       },
     });
 

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getOrgStats } from "@/actions/get-org-stats";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOthers, useSelf } from "@liveblocks/react";
-import { Users, UserCheck, UserX, Zap } from "lucide-react";
+import { Users, UserCheck, UserX, Zap, FolderKanban } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -47,7 +47,8 @@ const AdminStatsContent = () => {
 
   if (!isLoaded) {
     return (
-      <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+      <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 w-full">
+        <Skeleton className="h-[140px] rounded-2xl" />
         <Skeleton className="h-[140px] rounded-2xl" />
         <Skeleton className="h-[140px] rounded-2xl" />
         <Skeleton className="h-[140px] rounded-2xl" />
@@ -62,7 +63,8 @@ const AdminStatsContent = () => {
 
   if (isLoading) {
     return (
-      <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+      <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 w-full">
+        <Skeleton className="h-[140px] rounded-2xl" />
         <Skeleton className="h-[140px] rounded-2xl" />
         <Skeleton className="h-[140px] rounded-2xl" />
         <Skeleton className="h-[140px] rounded-2xl" />
@@ -96,7 +98,7 @@ const AdminStatsContent = () => {
   const offlineMembers = allMembers.filter((member) => !activeUserIds.has(member.id));
 
   return (
-    <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+    <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 w-full">
       {/* Active Users Card */}
       <Dialog>
         <DialogTrigger asChild>
@@ -207,6 +209,27 @@ const AdminStatsContent = () => {
           </span>
           <span className="text-[11px] font-medium text-orange-700 bg-orange-100/50 px-2.5 py-1 rounded-full border border-orange-200/50">
             In Progress
+          </span>
+        </div>
+      </div>
+
+      {/* Total Teams Card */}
+      <div className="relative overflow-hidden bg-white/80 backdrop-blur-sm border border-purple-200/50 rounded-2xl p-5 shadow-[0_2px_10px_-3px_rgba(168,85,247,0.1)] transition-shadow duration-300 flex flex-col justify-between group min-h-[140px]">
+        <div className="absolute -right-6 -top-6 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-colors duration-500" />
+        <div className="flex items-start justify-between relative z-10">
+          <span className="text-[11px] font-semibold text-purple-800/70 uppercase tracking-widest">
+            Total Teams
+          </span>
+          <div className="p-2.5 bg-purple-50/80 text-purple-600 rounded-xl group-hover:bg-purple-100/80 transition-colors">
+            <FolderKanban className="h-4 w-4" />
+          </div>
+        </div>
+        <div className="mt-4 flex items-end justify-between relative z-10">
+          <span className="text-3xl sm:text-4xl font-bold text-purple-950 tracking-tight">
+            {data?.totalTeams || 0}
+          </span>
+          <span className="text-[11px] font-medium text-purple-700 bg-purple-100/50 px-2.5 py-1 rounded-full border border-purple-200/50">
+            Teams
           </span>
         </div>
       </div>

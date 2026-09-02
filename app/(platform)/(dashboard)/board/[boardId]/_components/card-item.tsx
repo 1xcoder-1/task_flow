@@ -28,7 +28,7 @@ const getPriorityDisplay = (priority?: string) => {
 
 export const CardItem = ({ data, index }: CardItemProps) => {
   const cardModal = useCardModal();
-  
+
   const cardData = data as any;
 
   const overlay = useCardOverlayStore((state) => state.byCardId[data.id]);

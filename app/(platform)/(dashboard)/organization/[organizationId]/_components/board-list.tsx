@@ -16,16 +16,17 @@ export const BoardList = async () => {
 
   if (!orgId) return redirect("/select-org");
 
-  let folders = await db.folder.findMany({
+  let folders = await (db.folder as any).findMany({
     where: {
       orgId,
+      isArchived: false,
     },
     orderBy: {
       createdAt: "desc",
     },
   });
 
-  const impFolderExists = folders.some((f) => f.title === "Important");
+  const impFolderExists = folders.some((f: any) => f.title === "Important");
 
   if (!impFolderExists) {
     const { inngest } = await import("@/inngest/client");

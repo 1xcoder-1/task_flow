@@ -13,9 +13,12 @@ import {
 
 import { deleteBoard } from "@/actions/delete-board";
 import { useAction } from "@/hooks/use-action";
+import type { ListWithCards } from "@/types";
 
 type BoardOptionsProps = {
   id: string;
+  boardTitle?: string;
+  lists?: ListWithCards[];
 };
 
 export const BoardOptions = ({ id }: BoardOptionsProps) => {
@@ -54,7 +57,7 @@ export const BoardOptions = ({ id }: BoardOptionsProps) => {
           onClick={onDelete}
           disabled={isLoading}
           aria-disabled={isLoading}
-          className="rounded-none w-full h-auto p-2 px-5 justify-start font-normal text-sm"
+          className="rounded-none w-full h-auto p-2 px-5 justify-start font-normal text-sm text-rose-500 hover:text-rose-600"
         >
           Delete this board
         </Button>
@@ -62,3 +65,5 @@ export const BoardOptions = ({ id }: BoardOptionsProps) => {
     </Popover>
   );
 };
+
+

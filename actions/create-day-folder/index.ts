@@ -24,6 +24,33 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   let dayFolder;
 
   try {
+    // 1. Fetch parent month & year details to enforce exact calendar boundaries
+    const monthFolder = await db.monthFolder.findUnique({
+      where: { id: monthFolderId },
+      include: { yearFolder: true }
+    });
+
+    if (monthFolder) {
+      const year = parseInt(monthFolder.yearFolder?.title || new Date().getFullYear().toString(), 10);
+      const monthNames = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december"
+      ];
+      const monthIndex = monthNames.indexOf(monthFolder.title.toLowerCase());
+
+      if (monthIndex !== -1) {
+        // Get exact maximum days in this specific month & year (handles leap years & 28/30/31 days)
+        const maxDaysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+        const requestedDayNum = parseInt(title, 10);
+
+        if (!isNaN(requestedDayNum) && (requestedDayNum < 1 || requestedDayNum > maxDaysInMonth)) {
+          return {
+            error: `Invalid day! ${monthFolder.title} ${year} only has ${maxDaysInMonth} days.`
+          };
+        }
+      }
+    }
+
     dayFolder = await db.dayFolder.create({
       data: {
         title,

@@ -110,7 +110,7 @@ const MetadataSection = ({ cardData, priority, onPriorityChange, status, onStatu
       <input
         aria-label="Select due date"
         type="date"
-        value={cardData?.dueDate ? new Date(cardData.dueDate).toISOString().split('T')[0] : ""}
+        value={cardData?.dueDate ? (() => { const d = new Date(cardData.dueDate!); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })() : ""}
         onChange={(e) => onDueDateChange?.(e.target.value)}
         className="text-sm bg-transparent border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-300 w-[140px] text-gray-700"
       />

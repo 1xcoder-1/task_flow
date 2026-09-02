@@ -19,6 +19,8 @@ model Folder {
   accesses   FolderAccess[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
+  isArchived Boolean      @default(false)
+  deletedAt  DateTime?
 
   @@index([orgId])
 }
@@ -31,6 +33,8 @@ model YearFolder {
   months    MonthFolder[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  isArchived Boolean  @default(false)
+  deletedAt  DateTime?
   
   @@index([folderId])
 }
@@ -43,6 +47,8 @@ model MonthFolder {
   days         DayFolder[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
+  isArchived   Boolean     @default(false)
+  deletedAt    DateTime?
   
   @@index([yearFolderId])
 }
@@ -55,6 +61,8 @@ model DayFolder {
   boards        Board[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  isArchived    Boolean     @default(false)
+  deletedAt     DateTime?
   
   @@index([monthFolderId])
 }
@@ -87,6 +95,8 @@ model Board {
   updatedAt     DateTime  @updatedAt
 
   isImpBoard    Boolean   @default(false)
+  isArchived    Boolean   @default(false)
+  deletedAt     DateTime?
 
   @@index([dayFolderId])
   @@index([orgId])
@@ -104,6 +114,8 @@ model List {
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  isArchived Boolean  @default(false)
+  deletedAt  DateTime?
 
   @@index([boardId])
 }
@@ -130,6 +142,8 @@ model Card {
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  isArchived  Boolean   @default(false)
+  deletedAt   DateTime?
 
   linkedCardId String?
 

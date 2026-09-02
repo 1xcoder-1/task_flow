@@ -100,10 +100,10 @@ export const FolderOptionsModal = ({ folder }: FolderOptionsModalProps) => {
           <MoreHorizontal className="h-4 w-4" />
         </button>
       </DialogTrigger>
-      
+
       {/* We apply backdrop-blur-sm on DialogOverlay implicitly via Shadcn or directly here on DialogContent's parent by global css, but Shadcn dialog handles it. */}
-      <DialogContent 
-        className="w-[400px] p-0 overflow-hidden" 
+      <DialogContent
+        className="w-[400px] p-0 overflow-hidden"
         onClick={(e) => e.stopPropagation()} // Prevent bubbling to the Link wrapper
       >
         <div className="p-6 pt-8">
@@ -192,9 +192,9 @@ export const FolderOptionsModal = ({ folder }: FolderOptionsModalProps) => {
           <div className="text-sm text-rose-600 font-medium">
             Danger Zone
           </div>
-          <Button 
-            variant="destructive" 
-            size="sm" 
+          <Button
+            variant="destructive"
+            size="sm"
             onClick={onDelete}
             disabled={isDeleting}
             type="button"

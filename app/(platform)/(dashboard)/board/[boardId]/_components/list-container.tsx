@@ -321,14 +321,14 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
         activeTagId={activeTagId}
         onSelectTag={(tagId) => setActiveTagId(tagId)}
       />
-      <div className="min-h-0 flex-1 overflow-x-auto px-4 pt-2 pb-4 board-scrollbar">
+      <div className="min-h-0 flex-1 overflow-x-auto px-4 pt-2 board-scrollbar">
         <DragDropContext onDragEnd={onDragEnd}>
           <Droppable droppableId="lists" type="list" direction="horizontal">
             {(provided) => (
               <ol
                 {...provided.droppableProps}
                 ref={provided.innerRef}
-                className="flex gap-x-3 h-full"
+                className="flex gap-x-3 h-full pb-4"
               >
                 {displayData.map((list, i) => (
                   <ListItem

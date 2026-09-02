@@ -1,8 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { Activity, Layout } from "lucide-react";
+import { Activity, Layout, Trash2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+import { useState } from "react";
+import { TrashModal } from "@/components/modals/trash-modal";
 
 import {
   AccordionContent,
@@ -36,6 +38,7 @@ export const NavItem = ({
 }: NavItemProps) => {
   const router = useRouter();
   const pathname = usePathname();
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
 
   const routes = [
     {
@@ -48,10 +51,20 @@ export const NavItem = ({
       icon: <Activity className="h-4 w-4 mr-2" />,
       href: `/organization/${organization.id}/activity`,
     },
+    {
+      label: "Trash Bin",
+      icon: <Trash2 className="h-4 w-4 mr-2 text-rose-500" />,
+      href: "#trash",
+      isModal: true,
+    },
   ];
 
-  const onClick = (href: string) => {
-    router.push(href);
+  const onClick = (route: typeof routes[0]) => {
+    if (route.isModal) {
+      setIsTrashOpen(true);
+    } else {
+      router.push(route.href);
+    }
   };
 
   return (
@@ -82,7 +95,7 @@ export const NavItem = ({
             <Button
               key={route.label}
               size="sm"
-              onClick={() => onClick(route.href)}
+              onClick={() => onClick(route)}
               className={cn(
                 "w-full font-normal justify-start pl-6 h-9 rounded-md relative",
                 pathname === route.href
@@ -97,6 +110,11 @@ export const NavItem = ({
           ))}
         </div>
       </AccordionContent>
+
+      <TrashModal
+        isOpen={isTrashOpen}
+        onClose={() => setIsTrashOpen(false)}
+      />
     </AccordionItem>
   );
 };

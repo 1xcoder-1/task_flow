@@ -98,11 +98,11 @@ const handler = async (data: InputType): Promise<ReturnType> => {
         }),
         linkedCardId
           ? createAuditLog({
-              entityId: linkedCardId,
-              entityTitle: title,
-              entityType: ENTITY_TYPE.CARD,
-              action: ACTION.CREATE,
-            })
+            entityId: linkedCardId,
+            entityTitle: title,
+            entityType: ENTITY_TYPE.CARD,
+            action: ACTION.CREATE,
+          })
           : Promise.resolve(),
         liveblocks.broadcastEvent(boardId, {
           type: "CARD_CREATED",

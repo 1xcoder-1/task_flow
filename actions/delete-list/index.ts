@@ -24,12 +24,25 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   let list;
 
   try {
-    list = await db.list.delete({
+    list = await (db.list as any).update({
       where: {
         id,
         boardId,
         board: {
           orgId,
+        },
+      },
+      data: {
+        isArchived: true,
+        deletedAt: new Date(),
+        cards: {
+          updateMany: {
+            where: {},
+            data: {
+              isArchived: true,
+              deletedAt: new Date(),
+            },
+          },
         },
       },
     });

@@ -24,7 +24,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   let card;
 
   try {
-    card = await db.card.delete({
+    card = await (db.card as any).update({
       where: {
         id,
         list: {
@@ -32,6 +32,10 @@ const handler = async (data: InputType): Promise<ReturnType> => {
             orgId,
           },
         },
+      },
+      data: {
+        isArchived: true,
+        deletedAt: new Date(),
       },
     });
 

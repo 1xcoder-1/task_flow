@@ -1,80 +1,92 @@
-# Organization Sidebar Features & Implementation Plan
 
-This document outlines the core features to be added to the left sidebar of the main organization page, specifically focusing on daily operations, time management, and team networking, along with technical implementation details for each.
+## 1. Leave Management System (Chuttiyon Ka System)
+**Description (Tafseel):** Ek central hub jahan team members time-off / chutti ki request bhej saken, apna leave balance dekh saken aur managers approvals de saken.
+**Kaise Banayein (Implementation):**
+- **Database:** `LeaveRequest` (userId, startDate, endDate, type, status, reason) aur `LeaveBalance` (userId, totalDays, usedDays) models banayein.
+- **Backend:** API routes: `POST /api/leaves` (request submit karne ke liye), `GET /api/leaves` (history ke liye), aur `PATCH /api/leaves/[id]/approve` (manager approval ke liye).
+- **Frontend:** Calendar UI (`react-day-picker` ke zariye) dates select karne ke liye, submission form, aur managers ke liye dashboard table.
 
-## 1. Leave Management System
-**Description:** A centralized hub for requesting time off, viewing leave balances, and manager approvals.
-**How to make it:**
-- **Database:** Create `LeaveRequest` (userId, startDate, endDate, type, status, reason) and `LeaveBalance` (userId, totalDays, usedDays) models.
-- **Backend:** Create API routes: `POST /api/leaves` (submit request), `GET /api/leaves` (fetch history), and `PATCH /api/leaves/[id]/approve` (manager approval).
-- **Frontend:** Build a Calendar UI (using `react-day-picker`) for selecting dates, a form component for submission, and a dashboard table for managers to review pending requests.
+---
 
-## 2. Daily Base Charts & Activity 
-**Description:** Visual charts showing daily team activity, task completion rates, and project progress.
-**How to make it:**
-- **Database:** Ensure every action creates an `AuditLog` or `ActivityLog` entry with timestamps.
-- **Backend:** Create an aggregation endpoint (`GET /api/analytics/daily-activity`) that groups logs by day, user, and action type.
-- **Frontend:** Integrate a charting library like `recharts`. Build Line and Bar chart components to visualize daily task completions and team activity trends.
+## 2. Daily Base Charts & Activity (Daily Performance Charts)
+**Description (Tafseel):** Visual charts jo daily team activity, task completion rates aur project progress dikhayein.
+**Kaise Banayein (Implementation):**
+- **Database:** Har user action par `AuditLog` ya `ActivityLog` entry timestamps ke saath save ho.
+- **Backend:** Aggregation endpoint (`GET /api/analytics/daily-activity`) jo logs ko day, user, aur action type ke hisab se group kare.
+- **Frontend:** `recharts` library integrate karein. Line aur Bar chart components banayein jo daily task completions aur team activity trends display karein.
 
-## 3. Time Tracking & Active Task Page
-**Description:** A dedicated page where a user can view their assigned, pending (not done) tasks, select one, and start a stopwatch/timer specifically for that task. Users can only see tasks assigned to themselves, ensuring privacy and focus.
-**How to make it:**
-- **Database:** Ensure `Card` or `Task` models track `assigneeId` and `status` (pending/done). Create a `TimeLog` model (userId, taskId, startTime, endTime, duration).
-- **Backend:** Create an endpoint (`GET /api/tasks/me/pending`) to fetch incomplete tasks assigned specifically to the logged-in user. Create endpoints to start (`POST /api/time/start`) and stop (`POST /api/time/stop`) the timer.
-- **Frontend:** Build a dedicated UI page featuring a prominent Stopwatch component. Include a dropdown or list to select from the user's pending tasks. The timer should visually tick and use `localStorage` or server-state to persist across page reloads.
+---
 
-## 4. Tasks of Today (TOT) / Daily Member Page
-**Description:** A personalized daily dashboard unique to each member, showing their specific tasks, schedule, and daily performance metrics.
-**How to make it:**
-- **Database:** Query the `Task` or `Card` models filtered by `assigneeId === currentUser` and `dueDate === today`.
-- **Backend:** Create a specific endpoint (`GET /api/members/me/today`) that fetches the user's tasks, active time tracking, and daily schedule in one payload.
-- **Frontend:** Build a distraction-free list or Kanban view dedicated strictly to today's work, featuring quick-action buttons (Start Timer, Mark Complete) and a personalized greeting.
+## 3. Time Tracking & Active Task Page (Time Tracker Aur Active Tasks)
+**Description (Tafseel):** Ek dedicated page jahan user apne assigned, pending (incomplete) tasks dekh sake, ek task select karke stopwatch/timer start kar sake. User ko sirf apne assigned tasks dikhenge.
+**Kaise Banayein (Implementation):**
+- **Database:** `Card` ya `Task` models mein `assigneeId` aur `status` (pending/done) track karein. Ek `TimeLog` model (userId, taskId, startTime, endTime, duration) banayein.
+- **Backend:** Endpoint (`GET /api/tasks/me/pending`) jo logged-in user ke pending tasks fetch kare. Timer start (`POST /api/time/start`) aur stop (`POST /api/time/stop`) karne ke endpoints banayein.
+- **Frontend:** Dedicated UI page jisme prominent Stopwatch component ho, pending tasks ka selection dropdown ho, aur timer `localStorage` / server state ke saath sync rahe.
 
-## 5. Active Projects Portfolio
-**Description:** A high-level overview of all ongoing projects with health indicators.
-**How to make it:**
-- **Database:** Extend the `Board` or `Project` model to include a `status` field (e.g., On Track, At Risk) and a `progress` percentage.
-- **Backend:** Endpoint to aggregate project statuses and calculate overall completion percentages based on child tasks.
-- **Frontend:** A dashboard view with progress bars and status badges (using `shadcn/ui` Badge and Progress components).
+---
 
-## 6. Team Directory & Skill Network
-**Description:** A searchable database of employees, their roles, and a skill-sharing network.
-**How to make it:**
-- **Database:** Add a `Profile` model linked to the User, containing fields for `department`, `skillsToTeach`, and `skillsToLearn`.
-- **Backend:** Search API (`GET /api/directory?query=X`) that supports full-text search on names and skills.
-- **Frontend:** A grid of user profile cards with search and filter inputs to easily find colleagues by department or specific skills.
+## 4. Tasks of Today (TOT) / Daily Member Page (Aaj Ke Kaam)
+**Description (Tafseel):** Har member ke liye personalized daily dashboard jo unke aaj ke specific tasks, schedule aur daily metrics dikhaye.
+**Kaise Banayein (Implementation):**
+- **Database:** `Task` / `Card` models ko query karein jahan `assigneeId === currentUser` aur `dueDate === today`.
+- **Backend:** Endpoint (`GET /api/members/me/today`) jo user ke aaj ke tasks, active time tracking aur daily schedule fetch kare.
+- **Frontend:** Distraction-free List ya Kanban view jo sirf aaj ke kaam dikhaye, quick-action buttons (Start Timer, Mark Complete) ke saath.
 
-## 7. Resource Library & SOPs
-**Description:** A centralized knowledge base for Standard Operating Procedures (SOPs), company policies, and helpful templates.
-**How to make it:**
-- **Database:** Create a `Document` model (title, content, category, authorId, isPublic).
-- **Backend:** A generic CRUD API for documents (`GET /api/documents`, `POST /api/documents`).
-- **Frontend:** A rich text editor (e.g., TipTap or Quill) for writing docs, and a categorized folder view for easy reading and searching.
+---
 
-## 8. Asynchronous Stand-up Logs
-**Description:** A feature allowing team members to quickly share what they accomplished yesterday, their focus for today, and any blockers.
-**How to make it:**
-- **Database:** Create a `StandupLog` model (userId, date, yesterday, today, blockers).
-- **Backend:** API endpoint (`POST /api/standups`) that accepts submissions and prevents multiple submissions per day.
-- **Frontend:** A simple, three-question form modal that pops up on the first login of the day, and a feed to view everyone's updates.
+## 5. Active Projects Portfolio (Chalte Hue Projects)
+**Description (Tafseel):** Tamam ongoing projects ki high-level overview aur unki health/progress status indicators.
+**Kaise Banayein (Implementation):**
+- **Database:** `Board` / `Project` model mein `status` (e.g., On Track, At Risk) aur `progress` percentage field add karein.
+- **Backend:** Endpoint jo child tasks ke basis par overall completion percentage calculate aur aggregate kare.
+- **Frontend:** Dashboard view jisme progress bars aur status badges hon (`shadcn/ui` Badge aur Progress components).
 
-## 9. Peer Recognition (Kudos)
-**Description:** A dedicated board for team members to publicly thank or praise colleagues for their hard work, boosting morale.
-**How to make it:**
-- **Database:** Create a `Kudos` model (senderId, receiverId, message, timestamp).
-- **Backend:** Endpoint (`POST /api/kudos`) that creates the record and potentially sends an email/notification to the receiver.
-- **Frontend:** A scrolling feed component showing recent "Kudos", with an input box at the top to send a new one quickly.
+---
 
-## 10. Meeting Notes & Action Items
-**Description:** A collaborative space to take notes during team meetings and directly turn bullet points into assigned tasks.
-**How to make it:**
-- **Database:** Create a `MeetingNote` model (title, date, attendees, content).
-- **Backend:** Endpoints to auto-extract action items from the text (using regex or simple parsing) and bulk-create `Task` objects.
-- **Frontend:** A collaborative text editor (like Yjs + TipTap) where multiple people can type simultaneously.
+## 6. Team Directory & Skill Network (Team Directory Aur Skills)
+**Description (Tafseel):** Employees ki searchable directory, unke roles aur skill-sharing network.
+**Kaise Banayein (Implementation):**
+- **Database:** User se linked `Profile` model banayein jisme `department`, `skillsToTeach`, aur `skillsToLearn` fields hon.
+- **Backend:** Search API (`GET /api/directory?query=X`) jo names aur skills par full-text search kare.
+- **Frontend:** User profile cards ka grid UI jisme search aur department/skills filters hon.
 
-## 11. Private Member Scratchpad
-**Description:** A simple, private note-taking area for members to jot down quick thoughts or temporary lists not tied to any project.
-**How to make it:**
-- **Database:** Add a `scratchpad` (text) field to the user's `Profile` or a dedicated `PrivateNote` model.
-- **Backend:** An auto-save endpoint (`PATCH /api/members/me/scratchpad`) that debounces saves as the user types.
-- **Frontend:** A minimalist, persistent text area panel that can slide out from the right side of the screen at any time for quick access.
+---
+
+## 7. Resource Library & SOPs (Company Resources & Docs)
+**Description (Tafseel):** Centralized knowledge base jahan Standard Operating Procedures (SOPs), company policies aur templates rakhe ja saken.
+**Kaise Banayein (Implementation):**
+- **Database:** `Document` model (title, content, category, authorId, isPublic) banayein.
+- **Backend:** Generic CRUD API documents ke liye (`GET /api/documents`, `POST /api/documents`).
+- **Frontend:** Rich text editor (TipTap ya Quill) docs write karne ke liye, aur categorized folder view.
+
+---
+
+## 8. Asynchronous Stand-up Logs (Daily Standup Updates)
+**Description (Tafseel):** Team members daily updates share kar saken: kal kya kiya, aaj kya karenge, aur koi blockers hain ya nahi.
+**Kaise Banayein (Implementation):**
+- **Database:** `StandupLog` model (userId, date, yesterday, today, blockers) banayein.
+- **Backend:** API endpoint (`POST /api/standups`) jo daily 1 submission restrict/enforce kare.
+- **Frontend:** Simple 3-question form modal jo din ki pehli login par pop-up ho, aur team feed.
+
+---
+
+## 9. Peer Recognition (Kudos / Appreciations)
+**Description (Tafseel):** Ek dedicated board jahan team members ek doosre ki mehnat ko publicly appreciate/thank kar saken.
+**Kaise Banayein (Implementation):**
+- **Database:** `Kudos` model (senderId, receiverId, message, timestamp) banayein.
+- **Backend:** Endpoint (`POST /api/kudos`) jo record save kare aur receiver ko email/notification bheje.
+- **Frontend:** Recent Kudos ka scrolling feed component aur quick-send input box.
+
+---
+
+## 10. Private Member Scratchpad (Zati Quick Notes)
+**Description (Tafseel):** Member ke liye private, simple note-taking area jahan wo apne quick thoughts ya temporary lists save kar saken.
+**Kaise Banayein (Implementation):**
+- **Database:** User `Profile` ya `PrivateNote` model mein `scratchpad` (text) field add karein.
+- **Backend:** Auto-save endpoint (`PATCH /api/members/me/scratchpad`) jo typing ke dauran debounced auto-save kare.
+- **Frontend:** Minimalist slide-out text panel jo screen ke right side se kisi bhi waqt slide-out ho sake.
+
+---
+
+

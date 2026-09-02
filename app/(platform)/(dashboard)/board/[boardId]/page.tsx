@@ -23,12 +23,16 @@ const BoardIdPage = async ({ params }: BoardIdPageProps) => {
   const lists = await (db.list as any).findMany({
     where: {
       boardId: boardId,
+      isArchived: false,
       board: {
         orgId,
       },
     },
     include: {
       cards: {
+        where: {
+          isArchived: false,
+        },
         orderBy: {
           order: "asc",
         },
@@ -41,6 +45,17 @@ const BoardIdPage = async ({ params }: BoardIdPageProps) => {
             },
           },
           assignments: true,
+          subtasks: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+          comments: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+          attachments: true,
           tags: {
             include: {
               tag: true,

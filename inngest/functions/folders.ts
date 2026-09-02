@@ -287,3 +287,77 @@ export const handleFolderInit = inngest.createFunction(
     return { success: true };
   }
 );
+
+// Cron trigger running automatically at 12:00 AM (midnight) every single night
+export const handleDailyMidnightCron = inngest.createFunction(
+  {
+    id: "handle-daily-midnight-cron",
+    triggers: [{ cron: "0 0 * * *" }]
+  },
+  async ({ step }) => {
+    await step.run("auto-create-midnight-folders-for-all-orgs", async () => {
+      const now = new Date();
+      const currentYear = now.getFullYear().toString();
+      const currentMonth = now.toLocaleString("default", { month: "long" });
+      const currentDay = now.getDate().toString();
+
+      // Fetch all folders across all organizations
+      const allFolders = await db.folder.findMany();
+
+      for (const folder of allFolders) {
+        let yearFolder = await db.yearFolder.findFirst({
+          where: { folderId: folder.id, title: currentYear }
+        });
+
+        if (!yearFolder) {
+          yearFolder = await db.yearFolder.create({
+            data: { title: currentYear, folderId: folder.id }
+          });
+        }
+
+        let monthFolder = await db.monthFolder.findFirst({
+          where: { title: currentMonth, yearFolderId: yearFolder.id }
+        });
+
+        if (!monthFolder) {
+          monthFolder = await db.monthFolder.create({
+            data: { title: currentMonth, yearFolderId: yearFolder.id }
+          });
+        }
+
+        let dayFolder = await db.dayFolder.findFirst({
+          where: { title: currentDay, monthFolderId: monthFolder.id }
+        });
+
+        if (!dayFolder) {
+          dayFolder = await db.dayFolder.create({
+            data: { title: currentDay, monthFolderId: monthFolder.id }
+          });
+
+          await db.board.create({
+            data: {
+              title: "Daily Tasks",
+              orgId: folder.orgId,
+              dayFolderId: dayFolder.id,
+              imageId: "default",
+              imageThumbUrl: "https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=400&auto=format&fit=crop",
+              imageFullUrl: "https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=1080&auto=format&fit=crop",
+              imageUserName: "System",
+              imageLinkHtml: "System",
+              lists: {
+                create: [
+                  { title: "Pending", order: 1 },
+                  { title: "In Progress", order: 2 },
+                  { title: "Done", order: 3 }
+                ]
+              }
+            }
+          });
+        }
+      }
+    });
+
+    return { success: true };
+  }
+);
+

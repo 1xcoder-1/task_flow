@@ -24,16 +24,19 @@ const handler = async (data: InputType): Promise<ReturnType> => {
 
   try {
     if (type === "year") {
-      deletedFolder = await db.yearFolder.delete({
+      deletedFolder = await (db.yearFolder as any).update({
         where: { id },
+        data: { isArchived: true, deletedAt: new Date() },
       });
     } else if (type === "month") {
-      deletedFolder = await db.monthFolder.delete({
+      deletedFolder = await (db.monthFolder as any).update({
         where: { id },
+        data: { isArchived: true, deletedAt: new Date() },
       });
     } else if (type === "day") {
-      deletedFolder = await db.dayFolder.delete({
+      deletedFolder = await (db.dayFolder as any).update({
         where: { id },
+        data: { isArchived: true, deletedAt: new Date() },
       });
     } else {
       return { error: "Invalid folder type" };

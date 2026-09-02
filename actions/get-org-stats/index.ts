@@ -34,9 +34,22 @@ const getCachedOrgStats = unstable_cache(
       },
     });
 
+    const totalTeams = await db.folder.count({
+      where: {
+        orgId,
+        NOT: {
+          title: {
+            equals: "Important",
+            mode: "insensitive",
+          },
+        },
+      },
+    });
+
     return {
       totalMembers: 0,
       activeTasks,
+      totalTeams,
       activeUsers: 0,
       offlineUsers: 0,
     };

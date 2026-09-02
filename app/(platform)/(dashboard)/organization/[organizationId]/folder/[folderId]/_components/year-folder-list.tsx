@@ -17,12 +17,14 @@ interface YearFolderListProps {
 }
 
 const getYearFolders = unstable_cache(
-  (folderId: string) => db.yearFolder.findMany({
-    where: { folderId },
-    orderBy: { createdAt: "desc" },
-  }),
+  async (folderId: string) => {
+    return (db.yearFolder as any).findMany({
+      where: { folderId, isArchived: false },
+      orderBy: { createdAt: "desc" },
+    });
+  },
   ["year-folders"],
-  { revalidate: 30 }
+  { revalidate: 5, tags: ["folders"] }
 );
 
 export const YearFolderList = async ({ folderId }: YearFolderListProps) => {
@@ -40,7 +42,7 @@ export const YearFolderList = async ({ folderId }: YearFolderListProps) => {
       </div>
 
       <div className="flex flex-wrap gap-3 -ml-2">
-        {yearFolders.map((yearFolder) => (
+        {yearFolders.map((yearFolder: any) => (
           <WindowsFolderCard
             key={yearFolder.id}
             href={`/organization/${orgId}/folder/${folderId}/year/${yearFolder.id}`}
