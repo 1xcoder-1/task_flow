@@ -129,7 +129,7 @@ const MetadataSection = ({ cardData, priority, onPriorityChange, status, onStatu
 
       <Popover open={isAssigneeOpen} onOpenChange={setIsAssigneeOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="icon" className="h-6 w-6 rounded-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50">
+          <Button variant="outline" size="icon" aria-label="Assign members" className="h-6 w-6 rounded-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50">
             <Plus className="h-3 w-3" />
           </Button>
         </PopoverTrigger>
@@ -187,7 +187,7 @@ const MetadataSection = ({ cardData, priority, onPriorityChange, status, onStatu
 
       <Dialog open={isTagOpen} onOpenChange={setIsTagOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="icon" className="h-6 w-6 rounded-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50">
+          <Button variant="outline" size="icon" aria-label="Manage card tags" className="h-6 w-6 rounded-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50">
             <Plus className="h-3 w-3" />
           </Button>
         </DialogTrigger>
@@ -256,11 +256,7 @@ const MetadataSection = ({ cardData, priority, onPriorityChange, status, onStatu
 );
 
 const SubtasksSection = ({ cardData, subtaskTitle, setSubtaskTitle, onAddSubtask, onToggleSubtask, onDeleteSubtask, onReorderSubtasks }: any) => {
-  const [subtasks, setSubtasks] = useState<any[]>(cardData?.subtasks || []);
-
-  useEffect(() => {
-    setSubtasks(cardData?.subtasks || []);
-  }, [cardData?.subtasks]);
+  const subtasks = cardData?.subtasks || [];
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -268,7 +264,6 @@ const SubtasksSection = ({ cardData, subtaskTitle, setSubtaskTitle, onAddSubtask
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    setSubtasks(items);
     onReorderSubtasks(items);
   };
 
@@ -338,6 +333,7 @@ const SubtasksSection = ({ cardData, subtaskTitle, setSubtaskTitle, onAddSubtask
                         onClick={() => onDeleteSubtask(subtask.id)}
                         variant="ghost"
                         size="icon"
+                        aria-label="Delete subtask"
                         className="h-6 w-6 opacity-0 group-hover:opacity-100 transition text-red-500 hover:bg-red-50"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -364,7 +360,7 @@ const SubtasksSection = ({ cardData, subtaskTitle, setSubtaskTitle, onAddSubtask
           placeholder="Add a subtask..."
           className="flex-1 text-sm px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-sky-500 bg-gray-50/50"
         />
-        <Button onClick={onAddSubtask} variant="outline" size="icon" className="h-9 w-9 rounded-lg">
+        <Button onClick={onAddSubtask} variant="outline" size="icon" aria-label="Add subtask" className="h-9 w-9 rounded-lg">
           <Plus className="h-4 w-4 text-gray-600" />
         </Button>
       </div>
@@ -449,7 +445,16 @@ const AttachmentsSection = ({ cardData, isAddingLink, setIsAddingLink, linkUrl, 
 
       {/* Permanent Drag & Drop Upload Zone */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Upload files"
         onClick={() => docInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            docInputRef.current?.click();
+          }
+        }}
         className={`py-5 px-4 border-2 border-dashed rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all ${isDragOver
             ? "border-sky-500 bg-sky-100/70 ring-4 ring-sky-100 scale-[1.01]"
             : "border-neutral-200 hover:border-sky-400 bg-neutral-50/50 hover:bg-sky-50/40"
@@ -466,66 +471,69 @@ const AttachmentsSection = ({ cardData, isAddingLink, setIsAddingLink, linkUrl, 
         {/* Images Grid (2 per row) */}
         {cardData?.attachments?.some((a: any) => a.type === "image" || a.url?.startsWith("data:image")) && (
           <div className="grid grid-cols-2 gap-2.5">
-            {cardData.attachments
-              .filter((a: any) => a.type === "image" || a.url?.startsWith("data:image"))
-              .map((attachment: any) => (
-                <div
-                  key={attachment.id}
-                  className="group relative rounded-xl overflow-hidden border border-neutral-200/80 bg-neutral-900 aspect-video shadow-xs hover:shadow-md transition-all [content-visibility:auto]"
-                >
-                  <img
-                    src={attachment.previewUrl || attachment.url}
-                    alt={attachment.title || "Image attachment"}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex items-end justify-between">
-                    <span className="text-[11px] font-medium text-white truncate max-w-[50%]">
-                      {attachment.title || "Image"}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={(e) => handleDownload(e, attachment.url, attachment.title || "image.png")}
-                        className="p-1.5 rounded-md bg-white/20 hover:bg-white/40 text-white transition backdrop-blur-xs"
-                        title="Download"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleView(e, attachment.url)}
-                        className="p-1.5 rounded-md bg-white/20 hover:bg-white/40 text-white transition backdrop-blur-xs"
-                        title="View Image"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteAttachment(attachment.id)}
-                        className="p-1.5 rounded-md bg-red-500/80 hover:bg-red-600 text-white transition backdrop-blur-xs"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+            {cardData.attachments.flatMap((attachment: any) =>
+              attachment.type === "image" || attachment.url?.startsWith("data:image")
+                ? [
+                    <div
+                      key={attachment.id}
+                      className="group relative rounded-xl overflow-hidden border border-neutral-200/80 bg-neutral-900 aspect-video shadow-xs hover:shadow-md transition-shadow [content-visibility:auto]"
+                    >
+                      <Image
+                        src={attachment.previewUrl || attachment.url}
+                        alt={attachment.title || "Image attachment"}
+                        width={400}
+                        height={225}
+                        unoptimized={Boolean(attachment.url?.startsWith("data:"))}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex items-end justify-between">
+                        <span className="text-[11px] font-medium text-white truncate max-w-[50%]">
+                          {attachment.title || "Image"}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={(e) => handleDownload(e, attachment.url, attachment.title || "image.png")}
+                            className="p-1.5 rounded-md bg-white/20 hover:bg-white/40 text-white transition backdrop-blur-xs"
+                            title="Download"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleView(e, attachment.url)}
+                            className="p-1.5 rounded-md bg-white/20 hover:bg-white/40 text-white transition backdrop-blur-xs"
+                            title="View Image"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteAttachment(attachment.id)}
+                            className="p-1.5 rounded-md bg-red-500/80 hover:bg-red-600 text-white transition backdrop-blur-xs"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  ]
+                : []
+            )}
           </div>
         )}
 
         {/* Non-Image Attachments (2 per row grid layout) */}
         {cardData?.attachments?.filter((a: any) => a.type !== "image" && !a.url?.startsWith("data:image")).length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {cardData.attachments
-              .filter((a: any) => a.type !== "image" && !a.url?.startsWith("data:image"))
-              .map((attachment: any) => (
-                <div
-                  key={attachment.id}
-                  className="group flex items-center justify-between p-2.5 rounded-xl border border-neutral-200/80 bg-white hover:bg-neutral-50/80 hover:border-sky-300 transition-all shadow-2xs min-w-0 [content-visibility:auto]"
-                >
+            {cardData.attachments.flatMap((attachment: any) =>
+              attachment.type !== "image" && !attachment.url?.startsWith("data:image")
+                ? [
+                    <div
+                      key={attachment.id}
+                      className="group flex items-center justify-between p-2.5 rounded-xl border border-neutral-200/80 bg-white hover:bg-neutral-50/80 hover:border-sky-300 transition-colors shadow-2xs min-w-0 [content-visibility:auto]"
+                    >
                   <a
                     href={attachment.url}
                     onClick={(e) => handleView(e, attachment.url)}
@@ -576,7 +584,9 @@ const AttachmentsSection = ({ cardData, isAddingLink, setIsAddingLink, linkUrl, 
                     </Button>
                   </div>
                 </div>
-              ))}
+              ]
+            : []
+          )}
           </div>
         )}
       </div>
@@ -778,7 +788,7 @@ const CommentsSection = ({ cardData, memberships, onAddCommentWithMentions, onDe
               </p>
             </div>
           </div>
-          <Button onClick={() => onDeleteComment(comment.id)} variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition text-red-500">
+          <Button onClick={() => onDeleteComment(comment.id)} variant="ghost" size="icon" aria-label="Delete comment" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition text-red-500">
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>
@@ -787,12 +797,145 @@ const CommentsSection = ({ cardData, memberships, onAddCommentWithMentions, onDe
   );
 };
 
+const CardModalBodyContent = ({
+  cardData,
+  title,
+  onTitleChange,
+  onTitleBlur,
+  description,
+  onDescriptionChange,
+  onDescriptionBlur,
+  priority,
+  onPriorityChange,
+  status,
+  onStatusChange,
+  onDueDateChange,
+  memberships,
+  isAssigneeOpen,
+  setIsAssigneeOpen,
+  onToggleAssignee,
+  isTagOpen,
+  setIsTagOpen,
+  orgTags,
+  newTagName,
+  setNewTagName,
+  newTagColor,
+  setNewTagColor,
+  executeCreateTag,
+  executeToggleCardTag,
+  updateCardCache,
+  patchCard,
+  params,
+  subtaskTitle,
+  setSubtaskTitle,
+  onAddSubtask,
+  onToggleSubtask,
+  onDeleteSubtask,
+  onReorderSubtasks,
+  isAddingLink,
+  setIsAddingLink,
+  linkUrl,
+  setLinkUrl,
+  onSubmitLink,
+  onImageUpload,
+  fileInputRef,
+  docInputRef,
+  onDocumentUpload,
+  onDeleteAttachment,
+  onFileUpload,
+  executeCreateComment,
+  onDeleteComment,
+}: any) => (
+  <div className="flex-1 overflow-y-auto overscroll-contain custom-sidebar-scrollbar p-6 space-y-8">
+    <HeaderSection
+      title={title}
+      onTitleChange={onTitleChange}
+      onTitleBlur={onTitleBlur}
+      description={description}
+      onDescriptionChange={onDescriptionChange}
+      onDescriptionBlur={onDescriptionBlur}
+    />
+    <MetadataSection
+      cardData={cardData}
+      priority={priority}
+      onPriorityChange={onPriorityChange}
+      status={status}
+      onStatusChange={onStatusChange}
+      onDueDateChange={onDueDateChange}
+      memberships={memberships}
+      isAssigneeOpen={isAssigneeOpen}
+      setIsAssigneeOpen={setIsAssigneeOpen}
+      onToggleAssignee={onToggleAssignee}
+      isTagOpen={isTagOpen}
+      setIsTagOpen={setIsTagOpen}
+      orgTags={orgTags}
+      newTagName={newTagName}
+      setNewTagName={setNewTagName}
+      newTagColor={newTagColor}
+      setNewTagColor={setNewTagColor}
+      onCreateNewTag={() => {
+        if (!newTagName.trim()) return;
+        executeCreateTag({ name: newTagName, color: newTagColor });
+      }}
+      onToggleTag={(tagId: string) => {
+        if (!cardData) return;
+        const current = cardData.tags || [];
+        const isAttached = current.some((ct: any) => ct.tagId === tagId || ct.tag?.id === tagId);
+        const next = isAttached
+          ? current.filter((ct: any) => ct.tagId !== tagId && ct.tag?.id !== tagId)
+          : [...current, { tagId, tag: orgTags.find((tag: any) => tag.id === tagId) }];
+        updateCardCache((card: any) => ({ ...card, tags: next }));
+        patchCard(cardData.id, { tags: next });
+        executeToggleCardTag({ cardId: cardData.id, tagId, boardId: params.boardId as string });
+      }}
+    />
+    <div className="w-full h-px bg-gray-100" />
+    <SubtasksSection
+      cardData={cardData}
+      subtaskTitle={subtaskTitle}
+      setSubtaskTitle={setSubtaskTitle}
+      onAddSubtask={onAddSubtask}
+      onToggleSubtask={onToggleSubtask}
+      onDeleteSubtask={onDeleteSubtask}
+      onReorderSubtasks={onReorderSubtasks}
+    />
+    <div className="w-full h-px bg-gray-100" />
+    <AttachmentsSection
+      cardData={cardData}
+      isAddingLink={isAddingLink}
+      setIsAddingLink={setIsAddingLink}
+      linkUrl={linkUrl}
+      setLinkUrl={setLinkUrl}
+      onSubmitLink={onSubmitLink}
+      onImageUpload={onImageUpload}
+      fileInputRef={fileInputRef}
+      docInputRef={docInputRef}
+      onDocumentUpload={onDocumentUpload}
+      onDeleteAttachment={onDeleteAttachment}
+      onFileUpload={onFileUpload}
+    />
+    <div className="w-full h-px bg-gray-100" />
+    <CommentsSection
+      cardData={cardData}
+      memberships={memberships}
+      onAddCommentWithMentions={(text: string, mentionedUserIds: string[]) => {
+        if (!text.trim() || !cardData) return;
+        executeCreateComment({
+          text,
+          cardId: cardData.id,
+          boardId: params.boardId as string,
+          mentionedUserIds,
+        });
+      }}
+      onDeleteComment={onDeleteComment}
+    />
+  </div>
+);
+
 export const CardModal = () => {
   const queryClient = useQueryClient();
   const params = useParams();
   const router = useRouter();
-  const pathname = usePathname();
-
   const searchParams = useSearchParams();
   const id = useCardModal((state) => state.id);
   const isOpen = useCardModal((state) => state.isOpen);
@@ -802,10 +945,11 @@ export const CardModal = () => {
   const handleCloseModal = () => {
     onClose();
     if (searchParams?.get("cardId")) {
+      const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.delete("cardId");
       const query = newParams.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      router.replace(query ? `${currentPath}?${query}` : currentPath, { scroll: false });
     }
   };
 
@@ -1150,11 +1294,13 @@ export const CardModal = () => {
         method: "POST",
         body: form,
       });
-      const json = await response.json();
 
       if (!response.ok) {
-        throw new Error(json.error || "Upload failed");
+        const errorJson = await response.json().catch(() => ({}));
+        throw new Error(errorJson.error || "Upload failed");
       }
+
+      const json = await response.json();
 
       updateCardCache((card) => ({
         ...card,
@@ -1239,7 +1385,7 @@ export const CardModal = () => {
           <SheetTitle className="text-sm font-semibold text-gray-800">Task Detail</SheetTitle>
           <div className="flex items-center gap-x-2">
             {cardData && (
-              <Button onClick={onDeleteCard} variant="ghost" size="icon" className="h-8 w-8 rounded-full border text-red-500 hover:text-red-600 hover:bg-red-50">
+              <Button onClick={onDeleteCard} variant="ghost" size="icon" aria-label="Delete card" className="h-8 w-8 rounded-full border text-red-500 hover:text-red-600 hover:bg-red-50">
                 <Trash2 className="h-4 w-4" />
               </Button>
             )}
@@ -1259,90 +1405,55 @@ export const CardModal = () => {
             <Skeleton className="h-36 w-full rounded-lg" />
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto overscroll-contain custom-sidebar-scrollbar p-6 space-y-8">
-            <HeaderSection
-              title={title}
-              onTitleChange={onTitleChange}
-              onTitleBlur={onTitleBlur}
-              description={description}
-              onDescriptionChange={onDescriptionChange}
-              onDescriptionBlur={onDescriptionBlur}
-            />
-            <MetadataSection
-              cardData={cardData}
-              priority={priority}
-              onPriorityChange={onPriorityChange}
-              status={status}
-              onStatusChange={onStatusChange}
-              onDueDateChange={onDueDateChange}
-              memberships={memberships}
-              isAssigneeOpen={isAssigneeOpen}
-              setIsAssigneeOpen={setIsAssigneeOpen}
-              onToggleAssignee={onToggleAssignee}
-              isTagOpen={isTagOpen}
-              setIsTagOpen={setIsTagOpen}
-              orgTags={orgTags}
-              newTagName={newTagName}
-              setNewTagName={setNewTagName}
-              newTagColor={newTagColor}
-              setNewTagColor={setNewTagColor}
-              onCreateNewTag={() => {
-                if (!newTagName.trim()) return;
-                executeCreateTag({ name: newTagName, color: newTagColor });
-              }}
-              onToggleTag={(tagId: string) => {
-                if (!cardData) return;
-                const current = cardData.tags || [];
-                const isAttached = current.some((ct: any) => ct.tagId === tagId || ct.tag?.id === tagId);
-                const next = isAttached
-                  ? current.filter((ct: any) => ct.tagId !== tagId && ct.tag?.id !== tagId)
-                  : [...current, { tagId, tag: orgTags.find((tag: any) => tag.id === tagId) }];
-                updateCardCache((card) => ({ ...card, tags: next }));
-                patchCard(cardData.id, { tags: next });
-                executeToggleCardTag({ cardId: cardData.id, tagId, boardId: params.boardId as string });
-              }}
-            />
-            <div className="w-full h-px bg-gray-100" />
-            <SubtasksSection
-              cardData={cardData}
-              subtaskTitle={subtaskTitle}
-              setSubtaskTitle={setSubtaskTitle}
-              onAddSubtask={onAddSubtask}
-              onToggleSubtask={onToggleSubtask}
-              onDeleteSubtask={onDeleteSubtask}
-              onReorderSubtasks={onReorderSubtasks}
-            />
-            <div className="w-full h-px bg-gray-100" />
-            <AttachmentsSection
-              cardData={cardData}
-              isAddingLink={isAddingLink}
-              setIsAddingLink={setIsAddingLink}
-              linkUrl={linkUrl}
-              setLinkUrl={setLinkUrl}
-              onSubmitLink={onSubmitLink}
-              onImageUpload={onImageUpload}
-              fileInputRef={fileInputRef}
-              docInputRef={docInputRef}
-              onDocumentUpload={onDocumentUpload}
-              onDeleteAttachment={onDeleteAttachment}
-              onFileUpload={onFileUpload}
-            />
-            <div className="w-full h-px bg-gray-100" />
-            <CommentsSection
-              cardData={cardData}
-              memberships={memberships}
-              onAddCommentWithMentions={(text: string, mentionedUserIds: string[]) => {
-                if (!text.trim() || !cardData) return;
-                executeCreateComment({
-                  text,
-                  cardId: cardData.id,
-                  boardId: params.boardId as string,
-                  mentionedUserIds,
-                });
-              }}
-              onDeleteComment={onDeleteComment}
-            />
-          </div>
+          <CardModalBodyContent
+            cardData={cardData}
+            title={title}
+            onTitleChange={onTitleChange}
+            onTitleBlur={onTitleBlur}
+            description={description}
+            onDescriptionChange={onDescriptionChange}
+            onDescriptionBlur={onDescriptionBlur}
+            priority={priority}
+            onPriorityChange={onPriorityChange}
+            status={status}
+            onStatusChange={onStatusChange}
+            onDueDateChange={onDueDateChange}
+            memberships={memberships}
+            isAssigneeOpen={isAssigneeOpen}
+            setIsAssigneeOpen={setIsAssigneeOpen}
+            onToggleAssignee={onToggleAssignee}
+            isTagOpen={isTagOpen}
+            setIsTagOpen={setIsTagOpen}
+            orgTags={orgTags}
+            newTagName={newTagName}
+            setNewTagName={setNewTagName}
+            newTagColor={newTagColor}
+            setNewTagColor={setNewTagColor}
+            executeCreateTag={executeCreateTag}
+            executeToggleCardTag={executeToggleCardTag}
+            updateCardCache={updateCardCache}
+            patchCard={patchCard}
+            params={params}
+            subtaskTitle={subtaskTitle}
+            setSubtaskTitle={setSubtaskTitle}
+            onAddSubtask={onAddSubtask}
+            onToggleSubtask={onToggleSubtask}
+            onDeleteSubtask={onDeleteSubtask}
+            onReorderSubtasks={onReorderSubtasks}
+            isAddingLink={isAddingLink}
+            setIsAddingLink={setIsAddingLink}
+            linkUrl={linkUrl}
+            setLinkUrl={setLinkUrl}
+            onSubmitLink={onSubmitLink}
+            onImageUpload={onImageUpload}
+            fileInputRef={fileInputRef}
+            docInputRef={docInputRef}
+            onDocumentUpload={onDocumentUpload}
+            onDeleteAttachment={onDeleteAttachment}
+            onFileUpload={onFileUpload}
+            executeCreateComment={executeCreateComment}
+            onDeleteComment={onDeleteComment}
+          />
         )}
       </SheetContent>
     </Sheet>

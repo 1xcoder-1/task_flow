@@ -56,7 +56,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   try {
     await liveblocks.broadcastEvent(orgId, {
       type: "FOLDER_DELETED",
-      data: JSON.parse(JSON.stringify(folder)),
+      data: structuredClone(folder),
     });
   } catch (error) {
     console.error("Liveblocks broadcast failed", error);

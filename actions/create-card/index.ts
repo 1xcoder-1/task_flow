@@ -106,11 +106,17 @@ const handler = async (data: InputType): Promise<ReturnType> => {
           : Promise.resolve(),
         liveblocks.broadcastEvent(boardId, {
           type: "CARD_CREATED",
-          data: JSON.parse(JSON.stringify(card)),
+          data: structuredClone({
+            ...card,
+            createdAt: card.createdAt.toISOString(),
+            updatedAt: card.updatedAt.toISOString(),
+          }) as any,
         }).catch((error) => console.error("Liveblocks broadcast failed", error)),
       ]).catch((error) => console.error("Failed to finish card create side effects:", error));
 
       revalidatePath(`/board/${boardId}`);
+      revalidatePath(`/organization/${orgId}`);
+      revalidatePath(`/organization/${orgId}/daily-charts`);
     });
 
     return {

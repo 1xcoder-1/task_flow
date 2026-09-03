@@ -40,7 +40,7 @@ export const MonthFolderList = async ({ yearFolderId, organizationId, folderId }
         Month Folders
       </div>
 
-      <div className="flex flex-wrap gap-3 -ml-2">
+      <div className="flex flex-wrap gap-3 -ml-2 overflow-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden max-h-[calc(100vh-200px)] p-1">
         {monthFolders.map((monthFolder: any) => (
           <WindowsFolderCard
             key={monthFolder.id}

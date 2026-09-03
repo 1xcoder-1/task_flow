@@ -7,6 +7,9 @@ export type ReturnType = ActionState<InputType, {
   totalMembers: number;
   activeTasks: number;
   totalTeams: number;
+  totalBoards: number;
+  totalCards: number;
+  completedTasks: number;
   activeUsers: number;
   offlineUsers: number;
 }>;

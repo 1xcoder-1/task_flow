@@ -185,10 +185,11 @@ export const NotificationPopover = () => {
             </div>
           ) : (
             notifications.map((notification) => (
-              <div
+              <button
+                type="button"
                 key={notification.id}
                 onClick={() => onMarkRead(notification.id, notification.linkUrl)}
-                className={`flex items-start gap-x-3 px-4 py-3 cursor-pointer hover:bg-neutral-100 transition-colors ${
+                className={`w-full text-left flex items-start gap-x-3 px-4 py-3 cursor-pointer hover:bg-neutral-100 transition-colors ${
                   notification.isRead ? "opacity-60" : "bg-rose-50/40"
                 }`}
               >
@@ -230,7 +231,7 @@ export const NotificationPopover = () => {
                 {!notification.isRead && (
                   <div className="w-2 h-2 rounded-full bg-rose-500 mt-2 shrink-0" />
                 )}
-              </div>
+              </button>
             ))
           )}
         </div>

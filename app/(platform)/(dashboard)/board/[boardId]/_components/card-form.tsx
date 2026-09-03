@@ -28,6 +28,143 @@ type CardFormProps = {
   onCardFailed?: (listId: string, tempId: string) => void;
 };
 
+const DestinationSelector = ({
+  isLoading,
+  folders,
+  years,
+  months,
+  days,
+  boards,
+  lists,
+  selectedFolderId,
+  setSelectedFolderId,
+  selectedYearId,
+  setSelectedYearId,
+  selectedMonthId,
+  setSelectedMonthId,
+  selectedDayId,
+  setSelectedDayId,
+  selectedBoardId,
+  setSelectedBoardId,
+  selectedListId,
+  setSelectedListId,
+}: any) => {
+  if (isLoading) {
+    return <p className="text-xs text-muted-foreground">Loading destinations...</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <select
+        aria-label="Select destination folder"
+        className="w-full text-sm rounded-md border p-2"
+        value={selectedFolderId}
+        onChange={(e) => {
+          setSelectedFolderId(e.target.value);
+          setSelectedYearId("");
+          setSelectedMonthId("");
+          setSelectedDayId("");
+          setSelectedBoardId("");
+          setSelectedListId("");
+        }}
+      >
+        <option value="">Select Folder</option>
+        {folders.map((f: any) => (
+          <option key={f.id} value={f.id}>{f.title}</option>
+        ))}
+      </select>
+
+      {selectedFolderId && (
+        <select
+          aria-label="Select destination year"
+          className="w-full text-sm rounded-md border p-2"
+          value={selectedYearId}
+          onChange={(e) => {
+            setSelectedYearId(e.target.value);
+            setSelectedMonthId("");
+            setSelectedDayId("");
+            setSelectedBoardId("");
+            setSelectedListId("");
+          }}
+        >
+          <option value="">Select Year</option>
+          {years.map((y: any) => (
+            <option key={y.id} value={y.id}>{y.title}</option>
+          ))}
+        </select>
+      )}
+
+      {selectedYearId && (
+        <select
+          aria-label="Select destination month"
+          className="w-full text-sm rounded-md border p-2"
+          value={selectedMonthId}
+          onChange={(e) => {
+            setSelectedMonthId(e.target.value);
+            setSelectedDayId("");
+            setSelectedBoardId("");
+            setSelectedListId("");
+          }}
+        >
+          <option value="">Select Month</option>
+          {months.map((m: any) => (
+            <option key={m.id} value={m.id}>{m.title}</option>
+          ))}
+        </select>
+      )}
+
+      {selectedMonthId && (
+        <select
+          aria-label="Select destination day"
+          className="w-full text-sm rounded-md border p-2"
+          value={selectedDayId}
+          onChange={(e) => {
+            setSelectedDayId(e.target.value);
+            setSelectedBoardId("");
+            setSelectedListId("");
+          }}
+        >
+          <option value="">Select Day</option>
+          {days.map((d: any) => (
+            <option key={d.id} value={d.id}>{d.title}</option>
+          ))}
+        </select>
+      )}
+
+      {selectedDayId && (
+        <select
+          aria-label="Select destination board"
+          className="w-full text-sm rounded-md border p-2"
+          value={selectedBoardId}
+          onChange={(e) => {
+            setSelectedBoardId(e.target.value);
+            setSelectedListId("");
+          }}
+        >
+          <option value="">Select Board</option>
+          {boards.map((b: any) => (
+            <option key={b.id} value={b.id}>{b.title}</option>
+          ))}
+        </select>
+      )}
+
+      {selectedBoardId && (
+        <select
+          aria-label="Select destination list"
+          className="w-full text-sm rounded-md border p-2"
+          value={selectedListId}
+          onChange={(e) => setSelectedListId(e.target.value)}
+        >
+          <option value="">Select List</option>
+          {lists.map((l: any) => (
+            <option key={l.id} value={l.id}>{l.title}</option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+};
+
 export const CardForm = forwardRef<HTMLTextAreaElement, CardFormProps>(
   ({ listId, listTitle, enableEditing, disableEditing, isEditing, isImpBoard, onCardCreated, onCardSaved, onCardFailed }, ref) => {
     const params = useParams();
@@ -163,11 +300,11 @@ export const CardForm = forwardRef<HTMLTextAreaElement, CardFormProps>(
       });
       useCardOverlayStore.getState().patchCard(tempId, listStatus);
 
-      execute({ 
-        title, 
-        listId, 
-        boardId, 
-        ...(isImpBoard ? { targetListId: selectedListId } : {}) 
+      execute({
+        title,
+        listId,
+        boardId,
+        ...(isImpBoard ? { targetListId: selectedListId } : {})
       });
     };
 
@@ -203,112 +340,27 @@ export const CardForm = forwardRef<HTMLTextAreaElement, CardFormProps>(
           {isImpBoard && (
             <div className="space-y-2 text-sm">
               <p className="font-medium text-xs text-muted-foreground">Select Destination</p>
-              {isLoadingDest ? (
-                <p className="text-xs text-muted-foreground">Loading destinations...</p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <select
-                    className="w-full text-sm rounded-md border p-2"
-                    value={selectedFolderId}
-                    onChange={(e) => {
-                      setSelectedFolderId(e.target.value);
-                      setSelectedYearId("");
-                      setSelectedMonthId("");
-                      setSelectedDayId("");
-                      setSelectedBoardId("");
-                      setSelectedListId("");
-                    }}
-                  >
-                    <option value="">Select Folder</option>
-                    {folders.map(f => (
-                      <option key={f.id} value={f.id}>{f.title}</option>
-                    ))}
-                  </select>
-                  
-                  {selectedFolderId && (
-                    <select
-                      className="w-full text-sm rounded-md border p-2"
-                      value={selectedYearId}
-                      onChange={(e) => {
-                        setSelectedYearId(e.target.value);
-                        setSelectedMonthId("");
-                        setSelectedDayId("");
-                        setSelectedBoardId("");
-                        setSelectedListId("");
-                      }}
-                    >
-                      <option value="">Select Year</option>
-                      {years.map((y: any) => (
-                        <option key={y.id} value={y.id}>{y.title}</option>
-                      ))}
-                    </select>
-                  )}
-
-                  {selectedYearId && (
-                    <select
-                      className="w-full text-sm rounded-md border p-2"
-                      value={selectedMonthId}
-                      onChange={(e) => {
-                        setSelectedMonthId(e.target.value);
-                        setSelectedDayId("");
-                        setSelectedBoardId("");
-                        setSelectedListId("");
-                      }}
-                    >
-                      <option value="">Select Month</option>
-                      {months.map((m: any) => (
-                        <option key={m.id} value={m.id}>{m.title}</option>
-                      ))}
-                    </select>
-                  )}
-
-                  {selectedMonthId && (
-                    <select
-                      className="w-full text-sm rounded-md border p-2"
-                      value={selectedDayId}
-                      onChange={(e) => {
-                        setSelectedDayId(e.target.value);
-                        setSelectedBoardId("");
-                        setSelectedListId("");
-                      }}
-                    >
-                      <option value="">Select Day</option>
-                      {days.map((d: any) => (
-                        <option key={d.id} value={d.id}>{d.title}</option>
-                      ))}
-                    </select>
-                  )}
-
-                  {selectedDayId && (
-                    <select
-                      className="w-full text-sm rounded-md border p-2"
-                      value={selectedBoardId}
-                      onChange={(e) => {
-                        setSelectedBoardId(e.target.value);
-                        setSelectedListId("");
-                      }}
-                    >
-                      <option value="">Select Board</option>
-                      {boards.map((b: any) => (
-                        <option key={b.id} value={b.id}>{b.title}</option>
-                      ))}
-                    </select>
-                  )}
-
-                  {selectedBoardId && (
-                    <select
-                      className="w-full text-sm rounded-md border p-2"
-                      value={selectedListId}
-                      onChange={(e) => setSelectedListId(e.target.value)}
-                    >
-                      <option value="">Select List</option>
-                      {lists.map((l: any) => (
-                        <option key={l.id} value={l.id}>{l.title}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              )}
+              <DestinationSelector
+                isLoading={isLoadingDest}
+                folders={folders}
+                years={years}
+                months={months}
+                days={days}
+                boards={boards}
+                lists={lists}
+                selectedFolderId={selectedFolderId}
+                setSelectedFolderId={setSelectedFolderId}
+                selectedYearId={selectedYearId}
+                setSelectedYearId={setSelectedYearId}
+                selectedMonthId={selectedMonthId}
+                setSelectedMonthId={setSelectedMonthId}
+                selectedDayId={selectedDayId}
+                setSelectedDayId={setSelectedDayId}
+                selectedBoardId={selectedBoardId}
+                setSelectedBoardId={setSelectedBoardId}
+                selectedListId={selectedListId}
+                setSelectedListId={setSelectedListId}
+              />
             </div>
           )}
 

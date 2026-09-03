@@ -67,7 +67,14 @@ export const CardItem = ({ data, index }: CardItemProps) => {
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           ref={provided.innerRef}
-          role="button"
+          aria-label={`Card: ${data.title}`}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              cardModal.onOpen(data.id);
+            }
+          }}
           onClick={() => cardModal.onOpen(data.id)}
           className={`group relative flex flex-col gap-y-3 border rounded-xl p-3.5 shadow-sm transition overflow-hidden min-w-0 ${status === "DONE" ? "bg-emerald-50/50 border-emerald-100 opacity-80" : "bg-white border-gray-200 hover:border-gray-300"}`}
         >

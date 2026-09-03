@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { Plus, ChevronLeft } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useOrganization, useOrganizationList } from "@clerk/nextjs";
 
 import { buttonVariants } from "@/components/ui/button-variants";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Accordion } from "@/components/ui/accordion";
 
@@ -18,6 +17,10 @@ import { cn } from "@/lib/utils";
 type SidebarProps = {
   storageKey?: string;
 };
+
+const subscribeNoop = () => () => { };
+const getSnapshotClient = () => true;
+const getSnapshotServer = () => false;
 
 const SidebarSkeleton = () => (
   <>
@@ -34,7 +37,7 @@ const SidebarSkeleton = () => (
 );
 
 export const Sidebar = ({ storageKey = "t-sidebar-state" }: SidebarProps) => {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribeNoop, getSnapshotClient, getSnapshotServer);
   const [expanded, setExpanded] = useLocalStorage<Record<string, any>>(
     storageKey,
     {}
@@ -62,15 +65,13 @@ export const Sidebar = ({ storageKey = "t-sidebar-state" }: SidebarProps) => {
   );
 
   const onExpand = (id: string) => {
-    setExpanded((curr) => ({
+    setExpanded((curr: Record<string, any>) => ({
       ...curr,
       [id]: !expanded[id],
     }));
   };
 
   const { collapse } = useSidebar();
-
-  useEffect(() => setMounted(true), []);
 
   if (!mounted || !isLoadedOrg || !isLoadedOrgList || userMemberships.isLoading) return <SidebarSkeleton />;
 
@@ -82,6 +83,7 @@ export const Sidebar = ({ storageKey = "t-sidebar-state" }: SidebarProps) => {
           {isAdmin && (
             <Link
               href="/select-org"
+              aria-label="Add workspace"
               className={cn(
                 buttonVariants({
                   size: "icon",
@@ -95,6 +97,7 @@ export const Sidebar = ({ storageKey = "t-sidebar-state" }: SidebarProps) => {
           )}
           <button
             onClick={collapse}
+            aria-label="Collapse sidebar"
             className={cn(
               buttonVariants({
                 size: "icon",

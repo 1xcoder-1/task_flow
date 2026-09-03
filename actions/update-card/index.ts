@@ -55,6 +55,8 @@ const handler = async (data: InputType): Promise<ReturnType> => {
         action: ACTION.UPDATE,
       }).catch((error) => console.error("Failed to create audit log:", error));
       revalidatePath(`/board/${boardId}`);
+      revalidatePath(`/organization/${orgId}`);
+      revalidatePath(`/organization/${orgId}/daily-charts`);
     });
 
     return {

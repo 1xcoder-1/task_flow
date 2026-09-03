@@ -43,7 +43,7 @@ export const BoardList = async () => {
       <div className="flex items-center font-semibold text-lg text-neutral-700">
       </div>
 
-      <div className="flex flex-wrap gap-3 -ml-2">
+      <div className="flex flex-wrap gap-3 -ml-2 overflow-auto folder-scrollbar max-h-[calc(100vh-200px)] p-1">
         {folders.map((folder: FolderModel) => (
           <div key={folder.id} className="group flex flex-col w-40">
             <Link

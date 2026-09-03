@@ -60,7 +60,11 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   try {
     await liveblocks.broadcastEvent(orgId, {
       type: "FOLDER_CREATED",
-      data: JSON.parse(JSON.stringify(folder)),
+      data: structuredClone({
+        ...folder,
+        createdAt: folder.createdAt.toISOString(),
+        updatedAt: folder.updatedAt.toISOString(),
+      }) as any,
     });
   } catch (error) {
     console.error("Liveblocks broadcast failed", error);

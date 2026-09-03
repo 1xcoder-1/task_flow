@@ -76,6 +76,7 @@ body,
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -85,7 +86,9 @@ body,
 a[href^="https://liveblocks.io"] {
   display: none !important;
 }
-[class*="lb-badge"], [class*="lb-watermark"] {
+
+[class*="lb-badge"],
+[class*="lb-watermark"] {
   display: none !important;
 }
 
@@ -93,18 +96,22 @@ a[href^="https://liveblocks.io"] {
   .board-scrollbar::-webkit-scrollbar {
     height: 10px;
   }
+
   .board-scrollbar::-webkit-scrollbar:vertical {
     width: 0;
   }
+
   .board-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .board-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(0, 0, 0, 0.35);
     border-radius: 9999px;
     border: 2px solid transparent;
     background-clip: padding-box;
   }
+
   .board-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.55);
     border: 2px solid transparent;
@@ -115,16 +122,20 @@ a[href^="https://liveblocks.io"] {
   .cal-scrollbar::-webkit-scrollbar {
     width: 4px;
   }
+
   .cal-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .cal-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.25);
     border-radius: 9999px;
   }
+
   .cal-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.45);
   }
+
   /* Firefox */
   .cal-scrollbar {
     scrollbar-width: thin;
@@ -135,18 +146,50 @@ a[href^="https://liveblocks.io"] {
   .custom-sidebar-scrollbar::-webkit-scrollbar {
     width: 5px;
   }
+
   .custom-sidebar-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .custom-sidebar-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(156, 163, 175, 0.4);
     border-radius: 9999px;
   }
+
   .custom-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(107, 114, 128, 0.7);
   }
+
   .custom-sidebar-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: rgba(156, 163, 175, 0.4) transparent;
+  }
+
+  /* Thin transparent light-black scrollbar specifically for Folder containers (Year, Month, Day) */
+  .folder-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .folder-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .folder-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  .folder-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 9999px;
+  }
+
+  .folder-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  .folder-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
   }
 }

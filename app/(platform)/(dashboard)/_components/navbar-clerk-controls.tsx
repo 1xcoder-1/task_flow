@@ -1,14 +1,16 @@
 "use client";
 
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
-export const NavbarClerkControls = ({ isAdmin }: { isAdmin: boolean }) => {
-  const [mounted, setMounted] = useState(false);
+const subscribeNoop = () => () => {};
+const getSnapshotClient = () => true;
+const getSnapshotServer = () => false;
 
-  useEffect(() => setMounted(true), []);
+export const NavbarClerkControls = ({ isAdmin }: { isAdmin: boolean }) => {
+  const mounted = useSyncExternalStore(subscribeNoop, getSnapshotClient, getSnapshotServer);
 
   if (!mounted) {
     return (

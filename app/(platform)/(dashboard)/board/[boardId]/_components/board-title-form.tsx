@@ -33,7 +33,10 @@ export const BoardTitleForm = ({ data }: BoardTitleFormProps) => {
     },
   });
 
+  const isImpBoard = data.isImpBoard || data.title === "Imp Tasks daily";
+
   const enableEditing = () => {
+    if (isImpBoard) return;
     setIsEditing(true);
     setTimeout(() => {
       inputRef.current?.focus();

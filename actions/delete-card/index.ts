@@ -53,6 +53,8 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   }
 
   revalidatePath(`/board/${boardId}`);
+  revalidatePath(`/organization/${orgId}`);
+  revalidatePath(`/organization/${orgId}/daily-charts`);
 
   return { data: card };
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Activity, Layout, Trash2 } from "lucide-react";
+import { Activity, BarChart3, Clock, Layout, Trash2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
 import { TrashModal } from "@/components/modals/trash-modal";
@@ -43,13 +43,23 @@ export const NavItem = ({
   const routes = [
     {
       label: "Teams",
-      icon: <Layout className="h-4 w-4 mr-2" />,
+      icon: <Layout className="h-4 w-4 mr-2 text-indigo-600" />,
       href: `/organization/${organization.id}`,
     },
     {
-      label: "Activity",
-      icon: <Activity className="h-4 w-4 mr-2" />,
+      label: "Teams Activity",
+      icon: <Activity className="h-4 w-4 mr-2 text-emerald-600" />,
       href: `/organization/${organization.id}/activity`,
+    },
+    {
+      label: "Daily Charts",
+      icon: <BarChart3 className="h-4 w-4 mr-2 text-sky-600" />,
+      href: `/organization/${organization.id}/daily-charts`,
+    },
+    {
+      label: "Time Tracking",
+      icon: <Clock className="h-4 w-4 mr-2 text-amber-600" />,
+      href: `/organization/${organization.id}/time-tracker`,
     },
     {
       label: "Trash Bin",

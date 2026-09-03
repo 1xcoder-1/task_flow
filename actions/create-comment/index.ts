@@ -69,9 +69,9 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     if (mentionedUserIds && mentionedUserIds.length > 0) {
       const truncatedCardTitle = card?.title ? (card.title.length > 20 ? card.title.slice(0, 20) + "…" : card.title) : "task";
       
-      const notificationPromises = mentionedUserIds
-        .filter((targetUserId) => targetUserId !== userId)
-        .map((targetUserId) =>
+      const notificationPromises = mentionedUserIds.flatMap((targetUserId) => {
+        if (targetUserId === userId) return [];
+        return [
           db.notification.create({
             data: {
               taskId: cardId,
@@ -85,8 +85,9 @@ const handler = async (data: InputType): Promise<ReturnType> => {
               actorImage,
               linkUrl: `/board/${boardId}?cardId=${cardId}`,
             },
-          })
-        );
+          }),
+        ];
+      });
 
       await Promise.all(notificationPromises);
     }

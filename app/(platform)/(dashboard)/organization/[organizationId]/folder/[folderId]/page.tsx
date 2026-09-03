@@ -111,9 +111,11 @@ const FolderIdPage = async ({ params }: FolderIdPageProps) => {
       </Link>
       
       {requiresPassword ? (
-        <FolderAuthWrapper folderId={folderId}>
-          {content}
-        </FolderAuthWrapper>
+        <Suspense fallback={content}>
+          <FolderAuthWrapper folderId={folderId}>
+            {content}
+          </FolderAuthWrapper>
+        </Suspense>
       ) : (
         content
       )}

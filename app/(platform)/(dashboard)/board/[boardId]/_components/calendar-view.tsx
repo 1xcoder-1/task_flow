@@ -328,11 +328,11 @@ export const CalendarView = ({ cards }: CalendarViewProps) => {
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-1 pb-4 shrink-0">
         <div className="flex items-center gap-x-2">
-          <button type="button" onClick={goBack}
+          <button type="button" onClick={goBack} aria-label="Previous month"
             className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition">
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <button type="button" onClick={goForward}
+          <button type="button" onClick={goForward} aria-label="Next month"
             className="p-1.5 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition">
             <ChevronRight className="h-4 w-4" />
           </button>

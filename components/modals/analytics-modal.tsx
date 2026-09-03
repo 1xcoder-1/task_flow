@@ -102,17 +102,17 @@ export const AnalyticsModal = ({
             <div className="w-full bg-neutral-700/50 rounded-full h-3 flex overflow-hidden">
               <div
                 style={{ width: `${totalCards > 0 ? (completedCards / totalCards) * 100 : 0}%` }}
-                className="bg-emerald-500 h-full transition-all"
+                className="bg-emerald-500 h-full transition-colors"
                 title="Completed"
               />
               <div
                 style={{ width: `${totalCards > 0 ? (inProgressCards / totalCards) * 100 : 0}%` }}
-                className="bg-amber-500 h-full transition-all"
+                className="bg-amber-500 h-full transition-colors"
                 title="In Progress"
               />
               <div
                 style={{ width: `${totalCards > 0 ? (Math.max(0, todoCards) / totalCards) * 100 : 0}%` }}
-                className="bg-sky-500 h-full transition-all"
+                className="bg-sky-500 h-full transition-colors"
                 title="To Do"
               />
             </div>

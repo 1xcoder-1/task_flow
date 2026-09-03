@@ -9,7 +9,10 @@ export async function GET() {
     // Find all IMP boards
     const impBoards = await db.board.findMany({
       where: {
-        isImpBoard: true,
+        OR: [
+          { isImpBoard: true },
+          { title: "Imp Tasks daily" }
+        ],
       },
       select: {
         id: true,

@@ -34,6 +34,52 @@ function reorder<T>(list: T[], startIndex: number, endIndex: number) {
 const subscribeNoop = () => () => { };
 const getSnapshotClient = () => true;
 const getSnapshotServer = () => false;
+const BoardDragDropView = ({
+  onDragEnd,
+  displayData,
+  isImpBoard,
+  addOptimisticCard,
+  replaceOptimisticCard,
+  removeOptimisticCard,
+  addOptimisticList,
+  replaceOptimisticList,
+  removeOptimisticList,
+}: any) => (
+  <div className="min-h-0 flex-1 overflow-x-auto px-4 pt-2 board-scrollbar">
+    <DragDropContext onDragEnd={onDragEnd}>
+      <Droppable droppableId="lists" type="list" direction="horizontal">
+        {(provided) => (
+          <ol
+            {...provided.droppableProps}
+            ref={provided.innerRef}
+            className="flex gap-x-3 h-full pb-4"
+          >
+            {displayData.map((list: any, i: number) => (
+              <ListItem
+                key={list.id}
+                index={i}
+                data={list}
+                isImpBoard={isImpBoard}
+                onCardCreated={addOptimisticCard}
+                onCardSaved={replaceOptimisticCard}
+                onCardFailed={removeOptimisticCard}
+              />
+            ))}
+
+            {provided.placeholder}
+
+            <ListForm
+              onListCreated={addOptimisticList}
+              onListSaved={replaceOptimisticList}
+              onListFailed={removeOptimisticList}
+            />
+            <div aria-hidden className="flex-shrink-0 w-1" />
+          </ol>
+        )}
+      </Droppable>
+    </DragDropContext>
+  </div>
+);
 
 export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps) => {
   const router = useRouter();
@@ -47,7 +93,9 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
   const overlays = useCardOverlayStore((state) => state.byCardId);
   const localListIdsRef = useRef<Set<string>>(new Set());
 
-  useEffect(() => {
+  const [prevData, setPrevData] = useState(data);
+  if (data !== prevData) {
+    setPrevData(data);
     setOrderedData((prev) => {
       const extras = prev.filter((list) => {
         if (!localListIdsRef.current.has(list.id)) return false;
@@ -75,37 +123,51 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
 
       return extras.length ? [...merged, ...extras] : merged;
     });
-  }, [data]);
+  }
 
   const listsWithLiveCards = orderedData.map((list) => ({
     ...list,
-    cards: (list.cards || []).map((card: any) => {
-      const overlay = overlays[card.id];
-      if (!overlay) return card;
-      return {
-        ...card,
-        priority: overlay.priority ?? card.priority,
-        status: overlay.status ?? card.status,
-        isActive: overlay.isActive ?? card.isActive,
-        tags: overlay.tags ?? card.tags,
-        assignments: overlay.assignments ?? card.assignments,
-        dueDate: overlay.dueDate !== undefined ? overlay.dueDate : card.dueDate,
-        title: overlay.title ?? card.title,
-        description: overlay.description !== undefined ? overlay.description : card.description,
-      };
-    }),
+    cards: (list.cards || [])
+      .filter((card: any) => {
+        if (isImpBoard && card.createdAt) {
+          const createdTime = new Date(card.createdAt).getTime();
+          if (!isNaN(createdTime)) {
+            const isExpired = Date.now() - createdTime >= 24 * 60 * 60 * 1000;
+            if (isExpired) return false;
+          }
+        }
+        return true;
+      })
+      .map((card: any) => {
+        const overlay = overlays[card.id];
+        if (!overlay) return card;
+        return {
+          ...card,
+          priority: overlay.priority ?? card.priority,
+          status: overlay.status ?? card.status,
+          isActive: overlay.isActive ?? card.isActive,
+          tags: overlay.tags ?? card.tags,
+          assignments: overlay.assignments ?? card.assignments,
+          dueDate: overlay.dueDate !== undefined ? overlay.dueDate : card.dueDate,
+          title: overlay.title ?? card.title,
+          description: overlay.description !== undefined ? overlay.description : card.description,
+        };
+      }),
   }));
 
   // Extract all unique tags on cards in this board
-  const allBoardTags = Array.from(
-    new Map(
-      listsWithLiveCards
-        .flatMap((list) => list.cards || [])
-        .flatMap((card: any) => card.tags || [])
-        .filter((ct: any) => ct && (ct.tag || ct.id))
-        .map((ct: any) => [ct.tag?.id || ct.tagId || ct.id, ct.tag || ct])
-    ).values()
-  );
+  const tagMap = new Map();
+  for (const list of listsWithLiveCards) {
+    for (const card of (list.cards || [])) {
+      for (const ct of (card.tags || [])) {
+        if (ct && (ct.tag || ct.id)) {
+          const tagId = ct.tag?.id || ct.tagId || ct.id;
+          tagMap.set(tagId, ct.tag || ct);
+        }
+      }
+    }
+  }
+  const allBoardTags = Array.from(tagMap.values());
 
   const displayData = activeTagId
     ? listsWithLiveCards.map((list) => ({
@@ -316,45 +378,24 @@ export const ListContainer = ({ data, boardId, isImpBoard }: ListContainerProps)
 
   return (
     <div className="h-full w-full flex flex-col">
-      <TagFilterBar
-        tags={allBoardTags}
-        activeTagId={activeTagId}
-        onSelectTag={(tagId) => setActiveTagId(tagId)}
+      {allBoardTags.length > 0 && (
+        <TagFilterBar
+          tags={allBoardTags}
+          activeTagId={activeTagId}
+          onSelectTag={setActiveTagId}
+        />
+      )}
+      <BoardDragDropView
+        onDragEnd={onDragEnd}
+        displayData={displayData}
+        isImpBoard={isImpBoard}
+        addOptimisticCard={addOptimisticCard}
+        replaceOptimisticCard={replaceOptimisticCard}
+        removeOptimisticCard={removeOptimisticCard}
+        addOptimisticList={addOptimisticList}
+        replaceOptimisticList={replaceOptimisticList}
+        removeOptimisticList={removeOptimisticList}
       />
-      <div className="min-h-0 flex-1 overflow-x-auto px-4 pt-2 board-scrollbar">
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="lists" type="list" direction="horizontal">
-            {(provided) => (
-              <ol
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="flex gap-x-3 h-full pb-4"
-              >
-                {displayData.map((list, i) => (
-                  <ListItem
-                    key={list.id}
-                    index={i}
-                    data={list}
-                    isImpBoard={isImpBoard}
-                    onCardCreated={addOptimisticCard}
-                    onCardSaved={replaceOptimisticCard}
-                    onCardFailed={removeOptimisticCard}
-                  />
-                ))}
-
-                {provided.placeholder}
-
-                <ListForm
-                  onListCreated={addOptimisticList}
-                  onListSaved={replaceOptimisticList}
-                  onListFailed={removeOptimisticList}
-                />
-                <div aria-hidden className="flex-shrink-0 w-1" />
-              </ol>
-            )}
-          </Droppable>
-        </DragDropContext>
-      </div>
     </div>
   );
 };

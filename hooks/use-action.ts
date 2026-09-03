@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { ActionState, FieldErrors } from "@/lib/create-safe-action";
 
@@ -25,6 +26,7 @@ export const useAction = <TInput, TOutput>(
   const [error, setError] = useState<string | undefined>(undefined);
   const [data, setData] = useState<TOutput | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const queryClient = useQueryClient();
 
   const execute = useCallback(
     async (input: TInput) => {
@@ -45,13 +47,16 @@ export const useAction = <TInput, TOutput>(
         if (result.data) {
           setData(result.data);
           options.onSuccess?.(result.data);
+          queryClient.invalidateQueries({ queryKey: ["org-stats"] });
+          queryClient.invalidateQueries({ queryKey: ["user-tasks"] });
+          queryClient.invalidateQueries({ queryKey: ["daily-activity"] });
         }
       } finally {
         setIsLoading(false);
         options.onComplete?.();
       }
     },
-    [action, options]
+    [action, options, queryClient]
   );
 
   return {

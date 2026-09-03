@@ -94,10 +94,7 @@ export const ListForm = ({ onListCreated, onListSaved, onListFailed }: ListFormP
     return (
       <ListWrapper>
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSubmit(new FormData(e.currentTarget));
-          }}
+          action={onSubmit}
           ref={formRef}
           className="w-full p-3 rounded-md bg-white space-y-4 shadow-md"
         >

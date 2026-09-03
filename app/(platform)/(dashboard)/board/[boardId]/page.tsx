@@ -20,6 +20,22 @@ const BoardIdPage = async ({ params }: BoardIdPageProps) => {
 
   if (!board) notFound();
 
+  const isImpBoard = board.isImpBoard || board.title === "Imp Tasks daily";
+
+  if (isImpBoard) {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    await db.card.deleteMany({
+      where: {
+        list: {
+          boardId: boardId,
+        },
+        createdAt: {
+          lt: twentyFourHoursAgo,
+        },
+      },
+    });
+  }
+
   const lists = await (db.list as any).findMany({
     where: {
       boardId: boardId,

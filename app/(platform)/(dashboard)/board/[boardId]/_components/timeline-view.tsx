@@ -21,6 +21,9 @@ const PRIORITY_STYLES: Record<string, string> = {
   low: "bg-emerald-500/30 text-emerald-100 border-emerald-500/50",
 };
 
+const isOverdueCard = (card: any) =>
+  card.dueDate && new Date(card.dueDate) < new Date() && !card.isActive;
+
 export const TimelineView = ({ cards }: TimelineViewProps) => {
   const cardModal = useCardModal();
   const [currentPage, setCurrentPage] = useState(1);
@@ -43,9 +46,6 @@ export const TimelineView = ({ cards }: TimelineViewProps) => {
   const handleNext = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
-
-  const isOverdue = (card: any) =>
-    card.dueDate && new Date(card.dueDate) < new Date() && !card.isActive;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -76,6 +76,7 @@ export const TimelineView = ({ cards }: TimelineViewProps) => {
                 type="button"
                 onClick={handlePrev}
                 disabled={currentPage === 1}
+                aria-label="Previous timeline page"
                 className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/20 disabled:opacity-30 transition"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -84,6 +85,7 @@ export const TimelineView = ({ cards }: TimelineViewProps) => {
                 type="button"
                 onClick={handleNext}
                 disabled={currentPage === totalPages}
+                aria-label="Next timeline page"
                 className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/20 disabled:opacity-30 transition"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -104,7 +106,7 @@ export const TimelineView = ({ cards }: TimelineViewProps) => {
           paginatedCards.map((card, i) => {
             const globalIndex = startIndex + i;
             const hasDueDate = !!card.dueDate;
-            const overdue = isOverdue(card);
+            const overdue = isOverdueCard(card);
             const dueDateFormatted = hasDueDate
               ? new Date(card.dueDate).toLocaleDateString("en-US", {
                   month: "short",
@@ -123,7 +125,16 @@ export const TimelineView = ({ cards }: TimelineViewProps) => {
             return (
               <div
                 key={card.id}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open card: ${card.title}`}
                 onClick={() => cardModal.onOpen(card.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    cardModal.onOpen(card.id);
+                  }
+                }}
                 className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border transition-all cursor-pointer shadow-md backdrop-blur-sm ${
                   overdue
                     ? "bg-red-950/60 border-red-500/50 hover:bg-red-900/70"

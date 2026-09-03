@@ -258,6 +258,7 @@ model AuditLog {
   updatedAt   DateTime    @updatedAt
 
   @@index([orgId])
+  @@index([orgId, createdAt(sort: Desc)])
 }
 
 model Notification {

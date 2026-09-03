@@ -50,6 +50,45 @@ const EXPORT_FIELDS = [
 
 type FieldKey = (typeof EXPORT_FIELDS)[number]["key"];
 
+const ExportImportPreviewBox = ({
+  importedPreview,
+  isImporting,
+  onConfirmImport,
+}: {
+  importedPreview: any;
+  isImporting: boolean;
+  onConfirmImport: () => void;
+}) => (
+  <div className="bg-sky-950/40 border border-sky-800/50 rounded-lg p-3.5 space-y-2">
+    <div className="text-xs font-semibold text-sky-300">
+      Ready to import: &ldquo;{importedPreview.boardName}&rdquo;
+    </div>
+    <div className="text-xs text-sky-200/70">
+      {importedPreview.lists.length} lists &bull;{" "}
+      {importedPreview.lists.reduce((a: number, l: any) => a + (l.cards?.length || 0), 0)}{" "}
+      cards
+    </div>
+    <div className="text-xs text-sky-300/60 space-y-0.5 max-h-36 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30 pr-1">
+      {importedPreview.lists.map((l: any) => (
+        <div key={l.id || l.title}>
+          <span className="font-medium">{l.title}</span>
+          {" — "}
+          {l.cards?.length || 0} cards
+        </div>
+      ))}
+    </div>
+    <Button
+      onClick={onConfirmImport}
+      disabled={isImporting}
+      className="w-full bg-sky-600 hover:bg-sky-700 text-white text-xs mt-1 h-9 flex items-center justify-center gap-2"
+    >
+      {isImporting
+        ? "Importing data into board..."
+        : "Confirm & Import into Board"}
+    </Button>
+  </div>
+);
+
 export const ExportImportModal = ({
   isOpen,
   onClose,
@@ -342,37 +381,11 @@ export const ExportImportModal = ({
                 </div>
 
                 {importedPreview && (
-                  <div className="bg-sky-950/40 border border-sky-800/50 rounded-lg p-3.5 space-y-2">
-                    <div className="text-xs font-semibold text-sky-300">
-                      Ready to import: &ldquo;{importedPreview.boardName}&rdquo;
-                    </div>
-                    <div className="text-xs text-sky-200/70">
-                      {importedPreview.lists.length} lists &bull;{" "}
-                      {importedPreview.lists.reduce(
-                        (a, l) => a + (l.cards?.length || 0),
-                        0
-                      )}{" "}
-                      cards
-                    </div>
-                    <div className="text-xs text-sky-300/60 space-y-0.5 max-h-36 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.15)_transparent] [&::-webkit-scrollbar]:w-[3px] [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/15 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/30 pr-1">
-                      {importedPreview.lists.map((l, i) => (
-                        <div key={i}>
-                          <span className="font-medium">{l.title}</span>
-                          {" — "}
-                          {l.cards?.length || 0} cards
-                        </div>
-                      ))}
-                    </div>
-                    <Button
-                      onClick={handleConfirmImport}
-                      disabled={isImporting}
-                      className="w-full bg-sky-600 hover:bg-sky-700 text-white text-xs mt-1 h-9 flex items-center justify-center gap-2"
-                    >
-                      {isImporting
-                        ? "Importing data into board..."
-                        : "Confirm & Import into Board"}
-                    </Button>
-                  </div>
+                  <ExportImportPreviewBox
+                    importedPreview={importedPreview}
+                    isImporting={isImporting}
+                    onConfirmImport={handleConfirmImport}
+                  />
                 )}
               </div>
             )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Trash2, RotateCcw, Layers, Layout, CreditCard, Folder, Loader2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
@@ -21,6 +21,170 @@ interface TrashModalProps {
   onClose: () => void;
 }
 
+function getDaysRemaining(deletedAt?: string | Date | null, now: number = Date.now()) {
+  if (!deletedAt) return "30 days left";
+  const delTime = new Date(deletedAt).getTime();
+  if (isNaN(delTime)) return "30 days left";
+
+  const expireDate = delTime + 30 * 24 * 60 * 60 * 1000;
+  const diffMs = expireDate - now;
+
+  if (diffMs <= 0) return "Expired (Deleting...)";
+
+  const totalHours = diffMs / (1000 * 60 * 60);
+  const totalDays = Math.ceil(totalHours / 24);
+
+  if (totalDays > 1) {
+    return `${totalDays} day${totalDays === 1 ? "" : "s"} left`;
+  }
+
+  const diffHours = Math.floor(totalHours);
+  if (diffHours >= 1) {
+    return `${diffHours} hr${diffHours === 1 ? "" : "s"} left`;
+  }
+
+  const diffMins = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+  return `${diffMins} min${diffMins === 1 ? "" : "s"} left`;
+}
+
+const formatDeletedTime = (deletedAt?: Date | string | null) => {
+  if (!deletedAt) return null;
+  const d = new Date(deletedAt);
+  if (isNaN(d.getTime())) return null;
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+const TrashItemRow = ({
+  title,
+  subtitle,
+  imageUrl,
+  deletedAt,
+  now,
+  onRestore,
+  onDelete,
+}: {
+  title: string;
+  subtitle?: React.ReactNode;
+  imageUrl?: string;
+  deletedAt?: Date | string | null;
+  now?: number;
+  onRestore: () => void;
+  onDelete: () => void;
+}) => (
+  <div className="flex items-center justify-between bg-neutral-800/40 p-3 rounded-lg border border-neutral-800 text-xs">
+    <div className="flex items-center gap-3">
+      {imageUrl && (
+        <div
+          className="h-8 w-12 rounded bg-cover bg-center shrink-0"
+          style={{ backgroundImage: `url(${imageUrl})` }}
+        />
+      )}
+      <div>
+        <div className="font-semibold text-neutral-200">{title}</div>
+        <div className="flex items-center gap-2 text-[11px] text-neutral-400 mt-0.5">
+          {subtitle && <span>{subtitle}</span>}
+          {deletedAt && (
+            <span className="text-neutral-500 text-[10px]">
+              &bull; Trashed {formatDeletedTime(deletedAt)}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+    <div className="flex items-center gap-2 shrink-0">
+      <span className="text-[10px] bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded border border-rose-500/20 font-medium">
+        {getDaysRemaining(deletedAt, now)}
+      </span>
+      <Button
+        size="sm"
+        onClick={onRestore}
+        className="h-7 text-xs bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 flex items-center gap-1"
+      >
+        <RotateCcw className="h-3 w-3" /> Restore
+      </Button>
+      <Button
+        size="sm"
+        onClick={onDelete}
+        className="h-7 text-xs bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30"
+      >
+        Delete
+      </Button>
+    </div>
+  </div>
+);
+
+const TrashTabSwitcher = ({
+  activeTab,
+  setActiveTab,
+  cardsCount,
+  listsCount,
+  boardsCount,
+  teamsCount,
+  subfoldersCount,
+}: {
+  activeTab: string;
+  setActiveTab: (tab: any) => void;
+  cardsCount: number;
+  listsCount: number;
+  boardsCount: number;
+  teamsCount: number;
+  subfoldersCount: number;
+}) => (
+  <div className="flex items-center gap-1.5 border-b border-neutral-800 pb-2 mt-2 overflow-x-auto">
+    <button
+      onClick={() => setActiveTab("cards")}
+      className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition shrink-0 ${
+        activeTab === "cards" ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-neutral-400 hover:text-white"
+      }`}
+    >
+      <CreditCard className="h-3.5 w-3.5" />
+      Cards ({cardsCount})
+    </button>
+    <button
+      onClick={() => setActiveTab("lists")}
+      className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition shrink-0 ${
+        activeTab === "lists" ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-neutral-400 hover:text-white"
+      }`}
+    >
+      <Layers className="h-3.5 w-3.5" />
+      Lists ({listsCount})
+    </button>
+    <button
+      onClick={() => setActiveTab("boards")}
+      className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition shrink-0 ${
+        activeTab === "boards" ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-neutral-400 hover:text-white"
+      }`}
+    >
+      <Layout className="h-3.5 w-3.5" />
+      Boards ({boardsCount})
+    </button>
+    <button
+      onClick={() => setActiveTab("teams")}
+      className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition shrink-0 ${
+        activeTab === "teams" ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-neutral-400 hover:text-white"
+      }`}
+    >
+      <Folder className="h-3.5 w-3.5" />
+      Teams ({teamsCount})
+    </button>
+    <button
+      onClick={() => setActiveTab("subfolders")}
+      className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition shrink-0 ${
+        activeTab === "subfolders" ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-neutral-400 hover:text-white"
+      }`}
+    >
+      <Calendar className="h-3.5 w-3.5" />
+      Folders ({subfoldersCount})
+    </button>
+  </div>
+);
+
 export const TrashModal = ({ isOpen, onClose }: TrashModalProps) => {
   const [activeTab, setActiveTab] = useState<"cards" | "lists" | "boards" | "teams" | "subfolders">("cards");
   const [data, setData] = useState<{
@@ -31,19 +195,48 @@ export const TrashModal = ({ isOpen, onClose }: TrashModalProps) => {
   }>({ cards: [], lists: [], boards: [], folders: [] });
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setIsLoading(true);
-    const res = await getTrashedItems();
-    if (res.data) {
-      setData(res.data);
+    try {
+      const res = await getTrashedItems();
+      if (res.data) {
+        setData(res.data);
+      }
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  };
+  }, []);
+
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
+    if (!isOpen) return;
+    setNow(Date.now());
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isOpen]);
+
+  useEffect(() => {
+    let isSubscribed = true;
     if (isOpen) {
-      fetchItems();
+      setIsLoading(true);
+      getTrashedItems()
+        .then((res) => {
+          if (isSubscribed && res.data) {
+            setData(res.data);
+          }
+        })
+        .finally(() => {
+          if (isSubscribed) {
+            setIsLoading(false);
+          }
+        });
     }
+    return () => {
+      isSubscribed = false;
+    };
   }, [isOpen]);
 
   const { execute: executeRestore } = useAction(restoreItem, {
@@ -103,14 +296,6 @@ export const TrashModal = ({ isOpen, onClose }: TrashModalProps) => {
     }
   };
 
-  const getDaysRemaining = (deletedAt: string | Date | null) => {
-    if (!deletedAt) return "30 days left";
-    const delDate = new Date(deletedAt);
-    const expireDate = new Date(delDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-    const diffDays = Math.ceil((expireDate.getTime() - Date.now()) / (1000 * 3600 * 24));
-    return diffDays > 0 ? `${diffDays} days left` : "Expiring soon";
-  };
-
   const teamFolders = data.folders.filter((f) => !f.folderType || f.folderType === "FOLDER");
   const subFolders = data.folders.filter((f) => f.folderType && f.folderType !== "FOLDER");
 
@@ -144,53 +329,15 @@ export const TrashModal = ({ isOpen, onClose }: TrashModalProps) => {
         </DialogHeader>
 
         {/* Tab Selection */}
-        <div className="flex items-center gap-1.5 border-b border-neutral-800 pb-2 mt-2 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab("cards")}
-            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition shrink-0 ${
-              activeTab === "cards" ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-neutral-400 hover:text-white"
-            }`}
-          >
-            <CreditCard className="h-3.5 w-3.5" />
-            Cards ({data.cards.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("lists")}
-            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition shrink-0 ${
-              activeTab === "lists" ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-neutral-400 hover:text-white"
-            }`}
-          >
-            <Layers className="h-3.5 w-3.5" />
-            Lists ({data.lists.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("boards")}
-            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition shrink-0 ${
-              activeTab === "boards" ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-neutral-400 hover:text-white"
-            }`}
-          >
-            <Layout className="h-3.5 w-3.5" />
-            Boards ({data.boards.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("teams")}
-            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition shrink-0 ${
-              activeTab === "teams" ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-neutral-400 hover:text-white"
-            }`}
-          >
-            <Folder className="h-3.5 w-3.5" />
-            Teams ({teamFolders.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("subfolders")}
-            className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition shrink-0 ${
-              activeTab === "subfolders" ? "bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-neutral-400 hover:text-white"
-            }`}
-          >
-            <Calendar className="h-3.5 w-3.5" />
-            Folders ({subFolders.length})
-          </button>
-        </div>
+        <TrashTabSwitcher
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          cardsCount={data.cards.length}
+          listsCount={data.lists.length}
+          boardsCount={data.boards.length}
+          teamsCount={teamFolders.length}
+          subfoldersCount={subFolders.length}
+        />
 
         {/* Tab Content List */}
         <div className="min-h-[220px] max-h-[50vh] overflow-y-auto pr-1 space-y-2 mt-2">
@@ -206,33 +353,19 @@ export const TrashModal = ({ isOpen, onClose }: TrashModalProps) => {
                   <p className="text-xs text-neutral-500 text-center py-10">No trashed cards found.</p>
                 ) : (
                   data.cards.map((card) => (
-                    <div key={card.id} className="flex items-center justify-between bg-neutral-800/40 p-3 rounded-lg border border-neutral-800 text-xs">
-                      <div>
-                        <div className="font-semibold text-neutral-200">{card.title}</div>
-                        <div className="text-[11px] text-neutral-400 mt-0.5">
+                    <TrashItemRow
+                      key={card.id}
+                      title={card.title}
+                      subtitle={
+                        <>
                           List: <span className="text-neutral-300">{card.list?.title || "Unknown"}</span> &bull; Board: <span className="text-neutral-300">{card.list?.board?.title || "Unknown"}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded border border-rose-500/20">
-                          {getDaysRemaining(card.deletedAt)}
-                        </span>
-                        <Button
-                          size="sm"
-                          onClick={() => handleRestore("CARD", card.id, card.list?.board?.id)}
-                          className="h-7 text-xs bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 flex items-center gap-1"
-                        >
-                          <RotateCcw className="h-3 w-3" /> Restore
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleDeletePermanent("CARD", card.id, card.list?.board?.id)}
-                          className="h-7 text-xs bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
+                        </>
+                      }
+                      deletedAt={card.deletedAt}
+                      now={now}
+                      onRestore={() => handleRestore("CARD", card.id, card.list?.board?.id)}
+                      onDelete={() => handleDeletePermanent("CARD", card.id, card.list?.board?.id)}
+                    />
                   ))
                 )
               )}
@@ -242,33 +375,19 @@ export const TrashModal = ({ isOpen, onClose }: TrashModalProps) => {
                   <p className="text-xs text-neutral-500 text-center py-10">No trashed lists found.</p>
                 ) : (
                   data.lists.map((list) => (
-                    <div key={list.id} className="flex items-center justify-between bg-neutral-800/40 p-3 rounded-lg border border-neutral-800 text-xs">
-                      <div>
-                        <div className="font-semibold text-neutral-200">{list.title}</div>
-                        <div className="text-[11px] text-neutral-400 mt-0.5">
+                    <TrashItemRow
+                      key={list.id}
+                      title={list.title}
+                      subtitle={
+                        <>
                           Board: <span className="text-neutral-300">{list.board?.title || "Unknown"}</span> &bull; Cards: {list._count?.cards || 0}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded border border-rose-500/20">
-                          {getDaysRemaining(list.deletedAt)}
-                        </span>
-                        <Button
-                          size="sm"
-                          onClick={() => handleRestore("LIST", list.id, list.board?.id)}
-                          className="h-7 text-xs bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 flex items-center gap-1"
-                        >
-                          <RotateCcw className="h-3 w-3" /> Restore
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleDeletePermanent("LIST", list.id, list.board?.id)}
-                          className="h-7 text-xs bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
+                        </>
+                      }
+                      deletedAt={list.deletedAt}
+                      now={now}
+                      onRestore={() => handleRestore("LIST", list.id, list.board?.id)}
+                      onDelete={() => handleDeletePermanent("LIST", list.id, list.board?.id)}
+                    />
                   ))
                 )
               )}
@@ -278,37 +397,16 @@ export const TrashModal = ({ isOpen, onClose }: TrashModalProps) => {
                   <p className="text-xs text-neutral-500 text-center py-10">No trashed boards found.</p>
                 ) : (
                   data.boards.map((board) => (
-                    <div key={board.id} className="flex items-center justify-between bg-neutral-800/40 p-3 rounded-lg border border-neutral-800 text-xs">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="h-8 w-12 rounded bg-cover bg-center"
-                          style={{ backgroundImage: `url(${board.imageThumbUrl})` }}
-                        />
-                        <div>
-                          <div className="font-semibold text-neutral-200">{board.title}</div>
-                          <div className="text-[11px] text-neutral-400 mt-0.5">Board</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded border border-rose-500/20">
-                          {getDaysRemaining(board.deletedAt)}
-                        </span>
-                        <Button
-                          size="sm"
-                          onClick={() => handleRestore("BOARD", board.id)}
-                          className="h-7 text-xs bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 flex items-center gap-1"
-                        >
-                          <RotateCcw className="h-3 w-3" /> Restore
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleDeletePermanent("BOARD", board.id)}
-                          className="h-7 text-xs bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
+                    <TrashItemRow
+                      key={board.id}
+                      title={board.title}
+                      subtitle="Board"
+                      imageUrl={board.imageThumbUrl}
+                      deletedAt={board.deletedAt}
+                      now={now}
+                      onRestore={() => handleRestore("BOARD", board.id)}
+                      onDelete={() => handleDeletePermanent("BOARD", board.id)}
+                    />
                   ))
                 )
               )}
@@ -318,31 +416,15 @@ export const TrashModal = ({ isOpen, onClose }: TrashModalProps) => {
                   <p className="text-xs text-neutral-500 text-center py-10">No trashed team folders found.</p>
                 ) : (
                   teamFolders.map((folder: any) => (
-                    <div key={folder.id} className="flex items-center justify-between bg-neutral-800/40 p-3 rounded-lg border border-neutral-800 text-xs">
-                      <div>
-                        <div className="font-semibold text-neutral-200">{folder.title}</div>
-                        <div className="text-[11px] text-neutral-400 mt-0.5">Team Folder</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded border border-rose-500/20">
-                          {getDaysRemaining(folder.deletedAt)}
-                        </span>
-                        <Button
-                          size="sm"
-                          onClick={() => handleRestore("FOLDER", folder.id)}
-                          className="h-7 text-xs bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 flex items-center gap-1"
-                        >
-                          <RotateCcw className="h-3 w-3" /> Restore
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleDeletePermanent("FOLDER", folder.id)}
-                          className="h-7 text-xs bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30"
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
+                    <TrashItemRow
+                      key={folder.id}
+                      title={folder.title}
+                      subtitle="Team Folder"
+                      deletedAt={folder.deletedAt}
+                      now={now}
+                      onRestore={() => handleRestore("FOLDER", folder.id)}
+                      onDelete={() => handleDeletePermanent("FOLDER", folder.id)}
+                    />
                   ))
                 )
               )}
@@ -351,37 +433,17 @@ export const TrashModal = ({ isOpen, onClose }: TrashModalProps) => {
                 subFolders.length === 0 ? (
                   <p className="text-xs text-neutral-500 text-center py-10">No trashed date subfolders found.</p>
                 ) : (
-                  subFolders.map((folder: any) => {
-                    const targetType = folder.folderType;
-                    const subTitle = folder.subtitle || "Date Subfolder";
-                    return (
-                      <div key={folder.id} className="flex items-center justify-between bg-neutral-800/40 p-3 rounded-lg border border-neutral-800 text-xs">
-                        <div>
-                          <div className="font-semibold text-neutral-200">{folder.title}</div>
-                          <div className="text-[11px] text-neutral-400 mt-0.5">{subTitle}</div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded border border-rose-500/20">
-                            {getDaysRemaining(folder.deletedAt)}
-                          </span>
-                          <Button
-                            size="sm"
-                            onClick={() => handleRestore(targetType, folder.id)}
-                            className="h-7 text-xs bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 flex items-center gap-1"
-                          >
-                            <RotateCcw className="h-3 w-3" /> Restore
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={() => handleDeletePermanent(targetType, folder.id)}
-                            className="h-7 text-xs bg-rose-600/20 hover:bg-rose-600/40 text-rose-300 border border-rose-500/30"
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })
+                  subFolders.map((folder: any) => (
+                    <TrashItemRow
+                      key={folder.id}
+                      title={folder.title}
+                      subtitle={folder.subtitle || "Date Subfolder"}
+                      deletedAt={folder.deletedAt}
+                      now={now}
+                      onRestore={() => handleRestore(folder.folderType, folder.id)}
+                      onDelete={() => handleDeletePermanent(folder.folderType, folder.id)}
+                    />
+                  ))
                 )
               )}
             </>

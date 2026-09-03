@@ -11,6 +11,61 @@ export async function getTrashedItems() {
   }
 
   try {
+    // Auto-purge items soft-deleted more than 30 days ago
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    await Promise.all([
+      (db.card as any).deleteMany({
+        where: {
+          isArchived: true,
+          deletedAt: { lte: thirtyDaysAgo },
+          list: { board: { orgId } },
+        },
+      }),
+      (db.list as any).deleteMany({
+        where: {
+          isArchived: true,
+          deletedAt: { lte: thirtyDaysAgo },
+          board: { orgId },
+        },
+      }),
+      (db.board as any).deleteMany({
+        where: {
+          isArchived: true,
+          deletedAt: { lte: thirtyDaysAgo },
+          orgId,
+        },
+      }),
+      (db.folder as any).deleteMany({
+        where: {
+          isArchived: true,
+          deletedAt: { lte: thirtyDaysAgo },
+          orgId,
+        },
+      }),
+      (db.yearFolder as any).deleteMany({
+        where: {
+          isArchived: true,
+          deletedAt: { lte: thirtyDaysAgo },
+          folder: { orgId },
+        },
+      }),
+      (db.monthFolder as any).deleteMany({
+        where: {
+          isArchived: true,
+          deletedAt: { lte: thirtyDaysAgo },
+          yearFolder: { folder: { orgId } },
+        },
+      }),
+      (db.dayFolder as any).deleteMany({
+        where: {
+          isArchived: true,
+          deletedAt: { lte: thirtyDaysAgo },
+          monthFolder: { yearFolder: { folder: { orgId } } },
+        },
+      }),
+    ]);
+
     const [
       cards,
       lists,

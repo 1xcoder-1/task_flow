@@ -123,50 +123,62 @@ export async function importBoardData({
 
       // Create Subtasks
       if (Array.isArray(cardInput.subtasks) && cardInput.subtasks.length > 0) {
-        for (const st of cardInput.subtasks) {
-          if (st.title) {
-            await db.subtask.create({
-              data: {
-                title: st.title,
-                isCompleted: Boolean(st.isCompleted),
-                cardId: card.id,
-              },
-            });
-          }
-        }
+        await Promise.all(
+          cardInput.subtasks.flatMap((st: any) =>
+            st?.title
+              ? [
+                  db.subtask.create({
+                    data: {
+                      title: st.title,
+                      isCompleted: Boolean(st.isCompleted),
+                      cardId: card.id,
+                    },
+                  }),
+                ]
+              : []
+          )
+        );
       }
 
       // Create Comments
       if (Array.isArray(cardInput.comments) && cardInput.comments.length > 0) {
-        for (const cm of cardInput.comments) {
-          if (cm.text) {
-            await db.comment.create({
-              data: {
-                text: cm.text,
-                userName: cm.userName || "Imported Member",
-                userImage: "/placeholder-user.png",
-                cardId: card.id,
-                userId,
-              },
-            });
-          }
-        }
+        await Promise.all(
+          cardInput.comments.flatMap((cm: any) =>
+            cm?.text
+              ? [
+                  db.comment.create({
+                    data: {
+                      text: cm.text,
+                      userName: cm.userName || "Imported Member",
+                      userImage: "/placeholder-user.png",
+                      cardId: card.id,
+                      userId,
+                    },
+                  }),
+                ]
+              : []
+          )
+        );
       }
 
       // Create Web Links / Attachments
       if (Array.isArray(cardInput.links) && cardInput.links.length > 0) {
-        for (const linkUrl of cardInput.links) {
-          if (linkUrl) {
-            await db.attachment.create({
-              data: {
-                title: "Web Link",
-                url: linkUrl,
-                type: "link",
-                cardId: card.id,
-              },
-            });
-          }
-        }
+        await Promise.all(
+          cardInput.links.flatMap((linkUrl: string) =>
+            linkUrl
+              ? [
+                  db.attachment.create({
+                    data: {
+                      title: "Web Link",
+                      url: linkUrl,
+                      type: "link",
+                      cardId: card.id,
+                    },
+                  }),
+                ]
+              : []
+          )
+        );
       }
 
       // Create Tags — find or create each tag in the org, then link to card
@@ -201,24 +213,27 @@ export async function importBoardData({
 
       // Create Assignments — restore using exported userId (works for same-org re-imports)
       if (Array.isArray(cardInput.assignments) && cardInput.assignments.length > 0) {
-        for (const asgn of cardInput.assignments) {
-          // Only create if we have a real userId
-          if (!asgn.userId) continue;
-          try {
-            await db.cardAssignment.upsert({
-              where: { cardId_userId: { cardId: card.id, userId: asgn.userId } },
-              create: {
-                cardId: card.id,
-                userId: asgn.userId,
-                userName: asgn.userName || "Member",
-                userImage: asgn.userImage || "/placeholder-user.png",
-              },
-              update: {},
-            });
-          } catch {
-            // Silently skip if user no longer exists in org
-          }
-        }
+        await Promise.all(
+          cardInput.assignments.flatMap((asgn: any) =>
+            asgn?.userId
+              ? [
+                  db.cardAssignment.upsert({
+                    where: { cardId_userId: { cardId: card.id, userId: asgn.userId } },
+                    create: {
+                      cardId: card.id,
+                      userId: asgn.userId,
+                      userName: asgn.userName || "Member",
+                      userImage: asgn.userImage || "/placeholder-user.png",
+                    },
+                    update: {
+                      userName: asgn.userName || "Member",
+                      userImage: asgn.userImage || "/placeholder-user.png",
+                    },
+                  }),
+                ]
+              : []
+          )
+        );
       }
     }
   }

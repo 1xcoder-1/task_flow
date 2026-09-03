@@ -1,8 +1,4 @@
 import { Suspense } from "react";
-
-import { Separator } from "@/components/ui/separator";
-
-import { Info } from "../_components/info";
 import { ActivityList } from "./_components/activity-list";
 
 type Props = {
@@ -14,12 +10,8 @@ const ActivityPage = async ({ searchParams }: Props) => {
   const page = Number(resolvedParams?.page) || 1;
 
   return (
-    <div className="w-full">
-      <Info />
-      <Separator className="my-2" />
-      <Suspense fallback={<ActivityList.Skeleton />}>
-        <ActivityList page={page} />
-      </Suspense>
+    <div className="w-full max-w-4xl mx-auto p-2 sm:p-4 min-w-0 space-y-4">
+      <ActivityList page={page} />
     </div>
   );
 };

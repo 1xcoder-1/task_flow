@@ -357,7 +357,74 @@ export const handleDailyMidnightCron = inngest.createFunction(
       }
     });
 
+    await step.run("auto-reset-imp-boards-24h", async () => {
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const impBoards = await db.board.findMany({
+        where: {
+          OR: [
+            { isImpBoard: true },
+            { title: "Imp Tasks daily" }
+          ]
+        },
+        select: { id: true }
+      });
+
+      const impBoardIds = impBoards.map((b) => b.id);
+      if (impBoardIds.length > 0) {
+        await db.card.deleteMany({
+          where: {
+            list: {
+              boardId: { in: impBoardIds }
+            },
+            createdAt: {
+              lt: twentyFourHoursAgo
+            }
+          }
+        });
+      }
+    });
+
     return { success: true };
   }
 );
+
+// Periodic Cron trigger running automatically every hour to reset IMP boards (hard-delete cards older than 24h)
+export const handleImpBoardResetCron = inngest.createFunction(
+  {
+    id: "handle-imp-board-reset-cron",
+    triggers: [{ cron: "0 * * * *" }]
+  },
+  async ({ step }) => {
+    await step.run("auto-reset-imp-boards-24h", async () => {
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const impBoards = await db.board.findMany({
+        where: {
+          OR: [
+            { isImpBoard: true },
+            { title: "Imp Tasks daily" }
+          ]
+        },
+        select: { id: true }
+      });
+
+      const impBoardIds = impBoards.map((b) => b.id);
+
+      if (impBoardIds.length > 0) {
+        await db.card.deleteMany({
+          where: {
+            list: {
+              boardId: { in: impBoardIds }
+            },
+            createdAt: {
+              lt: twentyFourHoursAgo
+            }
+          }
+        });
+      }
+    });
+
+    return { success: true };
+  }
+);
+
 

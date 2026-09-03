@@ -89,22 +89,31 @@ export const CommandPalette = () => {
     }
 
     setLoading(true);
+    const controller = new AbortController();
+
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?query=${encodeURIComponent(query)}`);
+        const res = await fetch(`/api/search?query=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
         if (res.ok) {
           const data = await res.json();
           setResults(data);
           setSelectedIndex(0);
         }
-      } catch (err) {
-        console.error("Search fetch error:", err);
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          console.error("Search error:", err);
+        }
       } finally {
         setLoading(false);
       }
     }, 250);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [query]);
 
   const allItems = [
@@ -162,7 +171,7 @@ export const CommandPalette = () => {
       {/* Quick Launch Trigger Button in UI */}
       <button
         onClick={() => setIsOpen(true)}
-        className="hidden md:flex items-center gap-x-2 text-xs text-neutral-400 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-700/50 hover:border-sky-500/50 transition-all rounded-lg px-3 py-1.5 backdrop-blur-md shadow-sm group"
+        className="hidden md:flex items-center gap-x-2 text-xs text-neutral-400 bg-neutral-900/60 hover:bg-neutral-800/80 border border-neutral-700/50 hover:border-sky-500/50 transition-colors rounded-lg px-3 py-1.5 backdrop-blur-md shadow-sm group"
       >
         <Search className="w-3.5 h-3.5 text-neutral-400 group-hover:text-sky-400 transition-colors" />
         <span className="group-hover:text-neutral-200 transition-colors">Quick search...</span>
@@ -217,7 +226,7 @@ export const CommandPalette = () => {
                       key={`${item.kind}-${item.id}`}
                       onClick={() => handleSelect(item)}
                       onMouseEnter={() => setSelectedIndex(idx)}
-                      className={`w-full flex items-center gap-x-3 px-3 py-2.5 rounded-lg text-left text-sm transition-all ${
+                      className={`w-full flex items-center gap-x-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                         isSelected
                           ? "bg-sky-500/15 border border-sky-500/30 text-sky-200"
                           : "hover:bg-neutral-800/50 border border-transparent text-neutral-300"

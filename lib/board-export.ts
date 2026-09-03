@@ -79,8 +79,10 @@ export function exportToCSV(
     if (options.includeAssignments !== false) {
       // Export as "userId|userName|userImage" so import can recreate real assignments
       const assigneeStr = (c.assignments || [])
-        .map((a) => `${a.userId || ""}|${a.userName || ""}|${a.userImage || ""}`)
-        .filter((s) => s.replace(/\|/g, "").trim())
+        .flatMap((a) => {
+          const str = `${a.userId || ""}|${a.userName || ""}|${a.userImage || ""}`;
+          return str.replace(/\|/g, "").trim() ? [str] : [];
+        })
         .join(" ; ");
       row.push(csvCell(assigneeStr));
     }
@@ -98,19 +100,21 @@ export function exportToCSV(
     }
     if (options.includeLinks !== false) {
       const linkStr = (c.attachments || [])
-        .filter((att) => att.type === "link" || (!att.type && att.url))
-        .map((att) => att.url || att.link || "")
-        .filter(
-          (url) =>
-            url && !/\.(png|jpg|jpeg|gif|webp|pdf|docx|xlsx)$/i.test(url)
-        )
+        .flatMap((att) => {
+          if (att.type === "link" || (!att.type && att.url)) {
+            const url = att.url || att.link || "";
+            if (url && !/\.(png|jpg|jpeg|gif|webp|pdf|docx|xlsx)$/i.test(url)) {
+              return [url];
+            }
+          }
+          return [];
+        })
         .join(" ; ");
       row.push(csvCell(linkStr));
     }
     if (options.includeTags !== false) {
       const tagStr = (c.tags || [])
-        .map((t) => (t.tag ? `${t.tag.name}:${t.tag.color}` : ""))
-        .filter(Boolean)
+        .flatMap((t) => (t.tag ? [`${t.tag.name}:${t.tag.color}`] : []))
         .join(" ; ");
       row.push(csvCell(tagStr));
     }
@@ -156,14 +160,19 @@ export function exportToJSON(boardTitle: string, cards: ExportCardData[], option
         text: cm.text || cm.content || "",
       }));
     if (options.includeLinks !== false)
-      cardObj.links = (c.attachments || [])
-        .filter((att) => att.type === "link" || (!att.type && att.url))
-        .map((att) => att.url || att.link || "")
-        .filter((url) => url && !/\.(png|jpg|jpeg|gif|webp|pdf|docx|xlsx)$/i.test(url));
+      cardObj.links = (c.attachments || []).flatMap((att) => {
+        if (att.type === "link" || (!att.type && att.url)) {
+          const url = att.url || att.link || "";
+          if (url && !/\.(png|jpg|jpeg|gif|webp|pdf|docx|xlsx)$/i.test(url)) {
+            return [url];
+          }
+        }
+        return [];
+      });
     if (options.includeTags !== false)
-      cardObj.tags = (c.tags || [])
-        .map((t) => (t.tag ? { name: t.tag.name, color: t.tag.color } : null))
-        .filter(Boolean);
+      cardObj.tags = (c.tags || []).flatMap((t) =>
+        t.tag ? [{ name: t.tag.name, color: t.tag.color }] : []
+      );
 
     listsMap.get(c.listTitle)!.cards.push(cardObj);
   }
@@ -183,6 +192,7 @@ export function exportToJSON(boardTitle: string, cards: ExportCardData[], option
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 // ─── CSV IMPORT PARSER ─────────────────────────────────────────────────────────
@@ -362,48 +372,44 @@ export function parseTrelloJSON(jsonString: string) {
     const trelloChecklists = Array.isArray(data.checklists) ? data.checklists : [];
     const trelloActions = Array.isArray(data.actions) ? data.actions : [];
 
-    const mappedLists = trelloLists
-      .filter((l: any) => !l.closed)
-      .map((l: any) => {
-        const listCards = trelloCards
-          .filter((c: any) => c.idList === l.id && !c.closed)
-          .map((c: any) => {
-            // Subtasks from Trello checklists
-            const cardChecklists = trelloChecklists.filter(
-              (cl: any) => cl.idCard === c.id
-            );
-            const subtasks = cardChecklists.flatMap((cl: any) =>
-              (cl.checkItems || []).map((item: any) => ({
-                title: item.name || "",
-                isCompleted: item.state === "complete",
-              }))
-            );
-
-            // Comments from Trello actions
-            const comments = trelloActions
-              .filter(
-                (a: any) => a.type === "commentCard" && a.data?.card?.id === c.id
-              )
-              .map((a: any) => ({
-                userName: a.memberCreator?.fullName || "Trello Member",
-                text: a.data?.text || "",
-              }));
-
-            return {
-              title: c.name || "Untitled Card",
-              description: c.desc || "",
-              dueDate: c.due || undefined,
-              status: undefined,
-              priority: undefined,
-              subtasks,
-              comments,
-              links: [],
-              assignments: [],
-            };
-          });
-
-        return { title: l.name || "Untitled List", cards: listCards };
-      });
+    const mappedLists = trelloLists.flatMap((l: any) =>
+      l.closed
+        ? []
+        : [
+            {
+              title: l.name || "Untitled List",
+              cards: trelloCards.flatMap((c: any) =>
+                c.idList !== l.id || c.closed
+                  ? []
+                  : [
+                      {
+                        title: c.name || "Untitled Card",
+                        description: c.desc || "",
+                        dueDate: c.due || undefined,
+                        subtasks: trelloChecklists.flatMap((cl: any) =>
+                          cl.idCard === c.id
+                            ? (cl.checkItems || []).map((item: any) => ({
+                                title: item.name || "",
+                                isCompleted: item.state === "complete",
+                              }))
+                            : []
+                        ),
+                        comments: trelloActions.flatMap((a: any) =>
+                          a.type === "commentCard" && a.data?.card?.id === c.id
+                            ? [
+                                {
+                                  userName: a.memberCreator?.fullName || "Trello Member",
+                                  text: a.data?.text || "",
+                                },
+                              ]
+                            : []
+                        ),
+                      },
+                    ]
+              ),
+            },
+          ]
+    );
 
     return { boardName: data.name || "Imported Board", lists: mappedLists };
   } catch (err: any) {
@@ -461,4 +467,5 @@ function downloadCSV(filename: string, content: string) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

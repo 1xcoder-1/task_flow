@@ -21,9 +21,13 @@ type BoardNavbarProps = {
   onViewChange?: (mode: BoardViewMode) => void;
 };
 
-export const BoardNavbar = ({ data, lists = [], viewMode = "kanban", onViewChange }: BoardNavbarProps) => {
+const EMPTY_LISTS: ListWithCards[] = [];
+
+export const BoardNavbar = ({ data, lists = EMPTY_LISTS, viewMode = "kanban", onViewChange }: BoardNavbarProps) => {
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
   const [isExportImportOpen, setIsExportImportOpen] = useState(false);
+
+  const isImpBoard = data.isImpBoard || data.title === "Imp Tasks daily";
 
   return (
     <>
@@ -39,28 +43,32 @@ export const BoardNavbar = ({ data, lists = [], viewMode = "kanban", onViewChang
         )}
 
         <div className="ml-auto flex items-center gap-x-3">
-          {/* Glassmorphism Header Action Buttons for Analytics & Export/Import */}
-          <Button
-            onClick={() => setIsAnalyticsOpen(true)}
-            variant="transparent"
-            size="sm"
-            className="h-9 w-9 p-0 text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 hover:border-sky-400/50 rounded-[10%] shadow-sm backdrop-blur-sm transition-all duration-200"
-            title="Analytics & Team Dashboards"
-          >
-            <BarChart3 className="h-4 w-4 text-sky-400" />
-          </Button>
+          {!isImpBoard && (
+            <>
+              {/* Glassmorphism Header Action Buttons for Analytics & Export/Import */}
+              <Button
+                onClick={() => setIsAnalyticsOpen(true)}
+                variant="transparent"
+                size="sm"
+                className="h-9 w-9 p-0 text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 hover:border-sky-400/50 rounded-[10%] shadow-sm backdrop-blur-sm transition-colors duration-200"
+                title="Analytics & Team Dashboards"
+              >
+                <BarChart3 className="h-4 w-4 text-sky-400" />
+              </Button>
 
-          <Button
-            onClick={() => setIsExportImportOpen(true)}
-            variant="transparent"
-            size="sm"
-            className="h-9 w-9 p-0 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-400/50 rounded-[10%] shadow-sm backdrop-blur-sm transition-all duration-200"
-            title="Export & Import Board Data"
-          >
-            <FileSpreadsheet className="h-4 w-4 text-emerald-400" />
-          </Button>
+              <Button
+                onClick={() => setIsExportImportOpen(true)}
+                variant="transparent"
+                size="sm"
+                className="h-9 w-9 p-0 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 hover:border-emerald-400/50 rounded-[10%] shadow-sm backdrop-blur-sm transition-colors duration-200"
+                title="Export & Import Board Data"
+              >
+                <FileSpreadsheet className="h-4 w-4 text-emerald-400" />
+              </Button>
 
-          <BoardOptions id={data.id} boardTitle={data.title} lists={lists} />
+              <BoardOptions id={data.id} boardTitle={data.title} lists={lists} />
+            </>
+          )}
         </div>
       </div>
 

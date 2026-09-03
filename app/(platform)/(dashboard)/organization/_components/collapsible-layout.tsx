@@ -31,6 +31,7 @@ export const CollapsibleLayout = ({
         <Button
           variant="ghost"
           size="icon"
+          aria-label="Expand sidebar"
           onClick={expand}
           className="hidden md:flex absolute top-4 left-0 z-50 h-8 w-8 text-slate-500 hover:text-slate-800 hover:bg-slate-100 bg-white border shadow-sm rounded-l-none"
         >
@@ -39,8 +40,8 @@ export const CollapsibleLayout = ({
       )}
 
       <div className={cn(
-        "flex-1 pt-4 transition-all duration-300 ease-in-out",
-        isCollapsed ? "pl-8 pr-4" : "pl-4 pr-4"
+        "flex-1 min-w-0 w-full pt-4 transition-all duration-300 ease-in-out",
+        isCollapsed ? "pl-8 pr-4" : "pl-0 pr-2 md:pl-2"
       )}>
         {children}
       </div>
