@@ -1,8 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Activity, BarChart3, Clock, Layout, Trash2 } from "lucide-react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { TrashModal } from "@/components/modals/trash-modal";
 
@@ -36,7 +37,6 @@ export const NavItem = ({
   organization,
   onExpand,
 }: NavItemProps) => {
-  const router = useRouter();
   const pathname = usePathname();
   const [isTrashOpen, setIsTrashOpen] = useState(false);
 
@@ -69,14 +69,6 @@ export const NavItem = ({
     },
   ];
 
-  const onClick = (route: typeof routes[0]) => {
-    if (route.isModal) {
-      setIsTrashOpen(true);
-    } else {
-      router.push(route.href);
-    }
-  };
-
   return (
     <AccordionItem value={organization.id} className="border-none">
       <AccordionTrigger
@@ -101,23 +93,41 @@ export const NavItem = ({
       </AccordionTrigger>
       <AccordionContent className="pt-1 pb-1 pl-4 text-slate-700">
         <div className="flex flex-col gap-y-1 relative before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-slate-200">
-          {routes.map((route) => (
-            <Button
-              key={route.label}
-              size="sm"
-              onClick={() => onClick(route)}
-              className={cn(
-                "w-full font-normal justify-start pl-6 h-9 rounded-md relative",
-                pathname === route.href
-                  ? "bg-slate-100 text-slate-900 font-medium before:absolute before:left-[-1px] before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-slate-900 before:rounded-r-sm"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-              )}
-              variant="ghost"
-            >
-              {route.icon}
-              {route.label}
-            </Button>
-          ))}
+          {routes.map((route) => {
+            if (route.isModal) {
+              return (
+                <Button
+                  key={route.label}
+                  size="sm"
+                  onClick={() => setIsTrashOpen(true)}
+                  className="w-full font-normal justify-start pl-6 h-9 rounded-md relative text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  variant="ghost"
+                >
+                  {route.icon}
+                  {route.label}
+                </Button>
+              );
+            }
+
+            const isRouteActive = pathname === route.href;
+
+            return (
+              <Link
+                key={route.label}
+                href={route.href}
+                prefetch={true}
+                className={cn(
+                  "flex items-center w-full font-normal justify-start pl-6 h-9 rounded-md relative text-sm transition-colors",
+                  isRouteActive
+                    ? "bg-slate-100 text-slate-900 font-medium before:absolute before:left-[-1px] before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-5 before:bg-slate-900 before:rounded-r-sm"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                )}
+              >
+                {route.icon}
+                {route.label}
+              </Link>
+            );
+          })}
         </div>
       </AccordionContent>
 
