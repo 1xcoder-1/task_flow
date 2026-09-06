@@ -6,11 +6,11 @@ import { buttonVariants } from "@/components/ui/button-variants";
 
 export const Navbar = () => {
   return (
-    <div className="fixed top-0 w-full h-14 px-4 border-b shadow-sm bg-white flex items-center">
-      <div className="md:max-w-screen-2xl mx-auto flex items-center w-full justify-between">
-        <Logo />
+    <div className="fixed top-0 w-full h-16 px-4 border-b border-slate-200/80 shadow-xs bg-white/80 backdrop-blur-md z-50 flex items-center">
+      <div className="md:max-w-screen-xl mx-auto flex items-center w-full justify-between">
+        <Logo isMobile />
 
-        <div className="space-x-4 md:w-auto flex items-center justify-between w-full">
+        <div className="space-x-3 md:w-auto flex items-center justify-end">
           <Link
             href="/sign-in"
             className={buttonVariants({ size: "sm", variant: "outline" })}
@@ -18,17 +18,11 @@ export const Navbar = () => {
             Login
           </Link>
 
-          <Link href="/sign-up" className={buttonVariants({ size: "sm" })}>
-            Get Taskify for free
-          </Link>
-
-          <Link
-            href="https://github.com/sanidhyy/trello-clone"
-            target="_blank"
-            rel="noreferrer noopener"
-            className={buttonVariants({ size: "sm" })}
+          <Link 
+            href="/sign-up" 
+            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold h-9 px-4 rounded-xl shadow-xs transition flex items-center"
           >
-            <Github className="h-4 w-4" />
+            Get TaskFlow for free
           </Link>
         </div>
       </div>

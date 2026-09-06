@@ -289,3 +289,14 @@ model Notification {
   @@index([taskId])
   @@index([assignedToId])
 }
+
+model OrgSettings {
+  id                 String   @id @default(uuid())
+  orgId              String   @unique
+  autoFolderCreation Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([orgId])
+}
+

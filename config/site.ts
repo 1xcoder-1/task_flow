@@ -1,6 +1,6 @@
 export const siteConfig = {
-  name: "Taskify",
-  description: "Collaborate, manage projects and reach new productivity peaks.",
+  name: "TaskFlow",
+  description: "Collaborate, manage projects, track focus time, and reach new productivity peaks.",
   keywords: [
     "reactjs",
     "nextjs",

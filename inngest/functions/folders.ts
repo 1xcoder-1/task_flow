@@ -38,6 +38,14 @@ export const handleFolderCreate = inngest.createFunction(
 
     // 2. Auto-generate Year -> Month -> Day structure
     await step.run("auto-generate-nested-folders", async () => {
+      const orgSettings = await (db as any).orgSettings.findUnique({
+        where: { orgId: event.data.orgId }
+      });
+      if (orgSettings && orgSettings.autoFolderCreation === false) {
+        console.log(`[INNGEST] Skipping auto folder creation for org ${event.data.orgId} (Disabled by Admin)`);
+        return null;
+      }
+
       const now = new Date();
       const currentYear = now.getFullYear().toString();
       const currentMonth = now.toLocaleString("default", { month: "long" });
@@ -230,6 +238,14 @@ export const handleFolderInit = inngest.createFunction(
       const orgId = event.data.orgId;
       const folderId = event.data.folderId;
       
+      const orgSettings = await (db as any).orgSettings.findUnique({
+        where: { orgId }
+      });
+      if (orgSettings && orgSettings.autoFolderCreation === false) {
+        console.log(`[INNGEST] Skipping auto folder init for org ${orgId} (Disabled by Admin)`);
+        return null;
+      }
+
       const currentYear = new Date().getFullYear().toString();
       const currentMonth = new Date().toLocaleString('default', { month: 'long' });
       const currentDay = new Date().getDate().toString();
@@ -305,6 +321,13 @@ export const handleDailyMidnightCron = inngest.createFunction(
       const allFolders = await db.folder.findMany();
 
       for (const folder of allFolders) {
+        const orgSettings = await (db as any).orgSettings.findUnique({
+          where: { orgId: folder.orgId }
+        });
+        if (orgSettings && orgSettings.autoFolderCreation === false) {
+          continue;
+        }
+
         let yearFolder = await db.yearFolder.findFirst({
           where: { folderId: folder.id, title: currentYear }
         });

@@ -4,8 +4,8 @@
   "display": "standalone",
   "scope": "/",
   "start_url": "/",
-  "name": "Taskify",
-  "short_name": "Taskify",
+  "name": "TaskFlow",
+  "short_name": "TaskFlow",
   "description": "Collaborate, manage projects and reach new productivity peaks.",
   "icons": [
     {

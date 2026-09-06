@@ -52,7 +52,7 @@ export async function GET(req: Request) {
     });
 
     const pendingCards = userCards.filter((card) => card.status !== "DONE");
-    const activeCard = pendingCards.find((card) => card.isActive || card.status === "IN_PROGRESS") || pendingCards[0] || null;
+    const activeCard = pendingCards.find((card) => card.isActive || card.status === "IN_PROGRESS") || null;
     const completedToday = userCards.filter((card) => card.status === "DONE" && new Date(card.updatedAt) >= startOfToday).length;
 
     return NextResponse.json({
