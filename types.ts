@@ -15,3 +15,5 @@ export type CardWithRelations = Card & {
 
 export type ListWithCards = List & { cards: CardWithRelations[] };
 export type CardWithList = CardWithRelations & { list: List };
+
+// TaskFlow Build Release v1.0.1
