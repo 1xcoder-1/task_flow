@@ -19,6 +19,7 @@ import { FormSubmit } from "@/components/form/form-submit";
 import { useAction } from "@/hooks/use-action";
 import { updateFolder } from "@/actions/update-folder";
 import { deleteFolder } from "@/actions/delete-folder";
+import { compressLogoImage } from "@/lib/compress-media";
 
 import { Folder as FolderModel } from "@prisma/client";
 
@@ -64,14 +65,19 @@ export const FolderOptionsModal = ({ folder }: FolderOptionsModalProps) => {
     },
   });
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoBase64(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressLogoImage(file);
+        setLogoBase64(compressed);
+      } catch {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setLogoBase64(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      }
     }
   };
 

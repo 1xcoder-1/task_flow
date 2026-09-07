@@ -32,11 +32,29 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       hashedPassword = Buffer.from(password).toString('base64');
     }
 
+    let compressedLogo = logoUrl;
+    if (logoUrl && logoUrl.startsWith("data:image")) {
+      try {
+        const parts = logoUrl.split(",");
+        if (parts.length === 2) {
+          const sharp = (await import("sharp")).default;
+          const buffer = Buffer.from(parts[1], "base64");
+          const compressedBuffer = await sharp(buffer)
+            .resize(160, 160, { fit: "inside", withoutEnlargement: true })
+            .webp({ quality: 75 })
+            .toBuffer();
+          compressedLogo = `data:image/webp;base64,${compressedBuffer.toString("base64")}`;
+        }
+      } catch (err) {
+        console.error("Server logo compression error:", err);
+      }
+    }
+
     folder = await db.folder.create({
       data: {
         title,
         orgId,
-        logoUrl,
+        logoUrl: compressedLogo,
         password: hashedPassword,
       },
     });

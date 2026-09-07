@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { 
-  Clock, 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Check, 
+import {
+  Clock,
+  Play,
+  Pause,
+  RotateCcw,
+  Check,
   ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
@@ -38,23 +38,37 @@ interface PendingTaskItem {
 
 interface TimeTrackerClientProps {
   organizationId: string;
+  initialPendingCards?: PendingTaskItem[];
+  initialActiveCard?: any;
+  initialCompletedTodayCount?: number;
 }
 
-export const TimeTrackerClient = ({ organizationId }: TimeTrackerClientProps) => {
+export const TimeTrackerClient = ({
+  organizationId,
+  initialPendingCards,
+  initialActiveCard,
+  initialCompletedTodayCount = 0,
+}: TimeTrackerClientProps) => {
   const cardModal = useCardModal();
   const broadcast = useBroadcastEvent();
 
-  const [pendingCards, setPendingCards] = useState<PendingTaskItem[]>([]);
-  const [selectedTaskId, setSelectedTaskId] = useState<string>("");
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [pendingCards, setPendingCards] = useState<PendingTaskItem[]>(initialPendingCards || []);
+  const [selectedTaskId, setSelectedTaskId] = useState<string>(
+    initialActiveCard?.id || (initialPendingCards && initialPendingCards.length > 0 ? initialPendingCards[0].id : "")
+  );
+  const [activeTaskId, setActiveTaskId] = useState<string | null>(
+    initialActiveCard && (initialActiveCard.isActive || initialActiveCard.status === "IN_PROGRESS") ? initialActiveCard.id : null
+  );
   const [timerSeconds, setTimerSeconds] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isTimerRunning, setIsTimerRunning] = useState(
+    Boolean(initialActiveCard && (initialActiveCard.isActive || initialActiveCard.status === "IN_PROGRESS"))
+  );
+  const [isLoading, setIsLoading] = useState(!initialPendingCards);
 
   // Fetch Pending Tasks Data
-  const fetchPendingData = useCallback(async () => {
+  const fetchPendingData = useCallback(async (showLoading = false) => {
     try {
-      setIsLoading(true);
+      if (showLoading) setIsLoading(true);
       const res = await fetch(`/api/tasks/me/pending?orgId=${organizationId}`, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load pending tasks");
       const data = await res.json();
@@ -82,8 +96,10 @@ export const TimeTrackerClient = ({ organizationId }: TimeTrackerClientProps) =>
   }, [organizationId, selectedTaskId]);
 
   useEffect(() => {
-    fetchPendingData();
-  }, [fetchPendingData]);
+    if (!initialPendingCards) {
+      fetchPendingData(true);
+    }
+  }, [fetchPendingData, initialPendingCards]);
 
   // Real-time event listener via Liveblocks
   useEventListener(({ event }) => {

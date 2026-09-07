@@ -26,12 +26,10 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       db.folder.count({
         where: {
           orgId,
-          NOT: {
-            title: {
-              equals: "Important",
-              mode: "insensitive",
-            },
+          title: {
+            not: "Important",
           },
+          isArchived: false,
         },
       }),
       db.board.count({

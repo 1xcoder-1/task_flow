@@ -14,14 +14,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-export const AdminStats = () => {
+import { useMemo } from "react";
+
+export const AdminStats = ({ initialData }: { initialData?: any }) => {
   const { membership, isLoaded } = useOrganization();
 
-  if (!isLoaded || membership?.role !== "org:admin") {
+  if (isLoaded && membership?.role !== "org:admin") {
     return null;
   }
 
-  return <AdminStatsContent />;
+  return <AdminStatsContent initialData={initialData} />;
 };
 
 const AdminStatsSkeleton = () => (
@@ -63,9 +65,9 @@ function useActiveAdminMembers(memberships: any, user: any, self: any, others: a
   return { activeMembers, activeUsers, totalMembers, offlineUsers, offlineMembers };
 }
 
-const AdminStatsContent = () => {
+const AdminStatsContent = ({ initialData }: { initialData?: any }) => {
   const { organization, membership, memberships, isLoaded } = useOrganization({
-    memberships: { infinite: true, pageSize: 100 },
+    memberships: { infinite: true },
   });
   const { user } = useUser();
   const self = useSelf();
@@ -79,20 +81,23 @@ const AdminStatsContent = () => {
       if (res.error) throw new Error(res.error);
       return res.data;
     },
+    initialData: initialData || undefined,
     enabled: !!organization?.id && membership?.role === "org:admin",
-    staleTime: 0,
-    refetchInterval: 5_000,
+    staleTime: 60_000,
+    refetchInterval: 30_000,
     refetchOnWindowFocus: true,
   });
 
-  const { activeMembers, activeUsers, totalMembers, offlineUsers, offlineMembers } =
-    useActiveAdminMembers(memberships, user, self, others, organization, data);
+  const { activeMembers, activeUsers, totalMembers, offlineUsers, offlineMembers } = useMemo(
+    () => useActiveAdminMembers(memberships, user, self, others, organization, data || initialData),
+    [memberships, user, self, others, organization, data, initialData]
+  );
 
-  if (!isLoaded || isLoading) {
+  if ((!isLoaded && !initialData) || (isLoading && !data && !initialData)) {
     return <AdminStatsSkeleton />;
   }
 
-  if (!organization || membership?.role !== "org:admin") {
+  if (isLoaded && (!organization || membership?.role !== "org:admin")) {
     return null;
   }
 

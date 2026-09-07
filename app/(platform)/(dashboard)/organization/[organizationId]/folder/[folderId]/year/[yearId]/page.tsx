@@ -1,6 +1,6 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { db } from "@/lib/db";
 import { MonthFolderList } from "./_components/month-folder-list";
 
 interface YearIdPageProps {
@@ -14,6 +14,17 @@ interface YearIdPageProps {
 const YearIdPage = async ({ params }: YearIdPageProps) => {
   const { folderId, organizationId, yearId } = await params;
 
+  const monthFolders = await db.monthFolder.findMany({
+    where: { yearFolderId: yearId, isArchived: false },
+    select: {
+      id: true,
+      title: true,
+      yearFolderId: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
   return (
     <div className="w-full mb-20">
       <Link 
@@ -26,9 +37,7 @@ const YearIdPage = async ({ params }: YearIdPageProps) => {
       </Link>
       
       <div className="mt-4">
-        <Suspense fallback={<MonthFolderList.Skeleton />}>
-          <MonthFolderList yearFolderId={yearId} organizationId={organizationId} folderId={folderId} />
-        </Suspense>
+        <MonthFolderList monthFolders={monthFolders} yearFolderId={yearId} organizationId={organizationId} folderId={folderId} />
       </div>
     </div>
   );

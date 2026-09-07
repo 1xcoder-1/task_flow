@@ -18,9 +18,9 @@ export const Info = () => {
   const [autoFolderCreation, setAutoFolderCreation] = useState<boolean>(true);
   const [isUpdatingSetting, setIsUpdatingSetting] = useState<boolean>(false);
 
-  // Fetch Organization Settings (Auto Folder Creation)
+  // Fetch Organization Settings (Auto Folder Creation) - only for admin users
   const fetchOrgSettings = useCallback(async () => {
-    if (!organization?.id) return;
+    if (!organization?.id || !isAdmin) return;
     try {
       const res = await fetch(`/api/organization/settings?orgId=${organization.id}`);
       if (res.ok) {
@@ -32,15 +32,17 @@ export const Info = () => {
     } catch (err) {
       console.error("Failed to load org settings", err);
     }
-  }, [organization?.id]);
+  }, [organization?.id, isAdmin]);
 
   useEffect(() => {
-    fetchOrgSettings();
-  }, [fetchOrgSettings]);
+    if (isAdmin && organization?.id) {
+      fetchOrgSettings();
+    }
+  }, [isAdmin, organization?.id, fetchOrgSettings]);
 
   // Real-time Liveblocks setting listener
   useEventListener(({ event }) => {
-    if (!event || typeof event !== "object") return;
+    if (!event || typeof event !== "object" || !isAdmin) return;
     const e = event as any;
 
     if (e.type === "ORG_SETTINGS_UPDATED" && e.data?.orgId === organization?.id) {
@@ -100,10 +102,7 @@ export const Info = () => {
     }
   };
 
-  if (!isLoaded) return <Info.Skeleton />;
-
-  // Only show Organization Logo & Name & Settings to Admin users
-  if (!isAdmin) {
+  if (!isLoaded || !isAdmin) {
     return null;
   }
 

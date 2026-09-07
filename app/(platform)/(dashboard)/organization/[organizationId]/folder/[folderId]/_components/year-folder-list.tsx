@@ -1,38 +1,28 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { unstable_cache } from "next/cache";
 import { Folder } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { db } from "@/lib/db";
 import { WindowsFolderCard } from "@/components/ui/windows-folder-card";
-
-// Note: You will need to build FormGenericFolderPopover if you want a creation popover,
-// but for now we'll just put a placeholder button or we can build the popover.
 import { FormGenericFolderPopover } from "@/components/form/form-generic-folder-popover";
 import { NestedFolderOptionsModal } from "@/components/modals/nested-folder-options-modal";
 
 interface YearFolderListProps {
   folderId: string;
+  orgId: string;
+  yearFolders?: any[];
 }
 
-const getYearFolders = unstable_cache(
-  async (folderId: string) => {
-    return (db.yearFolder as any).findMany({
-      where: { folderId, isArchived: false },
-      orderBy: { createdAt: "desc" },
-    });
-  },
-  ["year-folders"],
-  { revalidate: 5, tags: ["folders"] }
-);
-
-export const YearFolderList = async ({ folderId }: YearFolderListProps) => {
-  const { orgId } = await auth();
-
-  if (!orgId) return redirect("/select-org");
-
-  const yearFolders = await getYearFolders(folderId);
+export const YearFolderList = async ({ folderId, orgId, yearFolders: initialYearFolders }: YearFolderListProps) => {
+  const yearFolders = initialYearFolders || await db.yearFolder.findMany({
+    where: { folderId, isArchived: false },
+    select: {
+      id: true,
+      title: true,
+      folderId: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="space-y-4">

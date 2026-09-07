@@ -1,6 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { unstable_cache } from "next/cache";
 import { User2 } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,23 +8,21 @@ import { BoardLink } from "@/components/board-link";
 
 interface DayBoardListProps {
   dayFolderId: string;
+  orgId: string;
+  boards?: any[];
 }
 
-const getDayBoards = unstable_cache(
-  (orgId: string, dayFolderId: string) => (db.board as any).findMany({
+export const DayBoardList = async ({ dayFolderId, orgId, boards: initialBoards }: DayBoardListProps) => {
+  const boards = initialBoards || await db.board.findMany({
     where: { orgId, dayFolderId, isArchived: false },
+    select: {
+      id: true,
+      title: true,
+      imageThumbUrl: true,
+      isImpBoard: true,
+    },
     orderBy: { createdAt: "desc" },
-  }),
-  ["day-boards"],
-  { revalidate: 30 }
-);
-
-export const DayBoardList = async ({ dayFolderId }: DayBoardListProps) => {
-  const { orgId } = await auth();
-
-  if (!orgId) return redirect("/select-org");
-
-  const boards = await getDayBoards(orgId, dayFolderId);
+  });
 
   return (
     <div className="space-y-4">

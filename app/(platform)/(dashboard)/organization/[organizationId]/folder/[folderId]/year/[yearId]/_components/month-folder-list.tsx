@@ -1,6 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { unstable_cache } from "next/cache";
 import { Folder } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,25 +10,20 @@ interface MonthFolderListProps {
   yearFolderId: string;
   organizationId: string;
   folderId: string;
+  monthFolders?: any[];
 }
 
-const getMonthFolders = unstable_cache(
-  async (yearFolderId: string) => {
-    return (db.monthFolder as any).findMany({
-      where: { yearFolderId, isArchived: false },
-      orderBy: { createdAt: "desc" },
-    });
-  },
-  ["month-folders"],
-  { revalidate: 5, tags: ["folders"] }
-);
-
-export const MonthFolderList = async ({ yearFolderId, organizationId, folderId }: MonthFolderListProps) => {
-  const { orgId } = await auth();
-
-  if (!orgId) return redirect("/select-org");
-
-  const monthFolders = await getMonthFolders(yearFolderId);
+export const MonthFolderList = async ({ yearFolderId, organizationId, folderId, monthFolders: initialMonthFolders }: MonthFolderListProps) => {
+  const monthFolders = initialMonthFolders || await db.monthFolder.findMany({
+    where: { yearFolderId, isArchived: false },
+    select: {
+      id: true,
+      title: true,
+      yearFolderId: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="space-y-4">

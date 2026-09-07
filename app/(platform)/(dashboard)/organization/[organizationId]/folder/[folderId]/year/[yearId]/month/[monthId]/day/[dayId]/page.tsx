@@ -1,6 +1,6 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { db } from "@/lib/db";
 import { DayBoardList } from "./_components/day-board-list";
 
 interface DayIdPageProps {
@@ -16,6 +16,17 @@ interface DayIdPageProps {
 const DayIdPage = async ({ params }: DayIdPageProps) => {
   const { folderId, organizationId, yearId, monthId, dayId } = await params;
 
+  const boards = await db.board.findMany({
+    where: { orgId: organizationId, dayFolderId: dayId, isArchived: false },
+    select: {
+      id: true,
+      title: true,
+      imageThumbUrl: true,
+      isImpBoard: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
   return (
     <div className="w-full mb-20">
       <Link 
@@ -28,9 +39,7 @@ const DayIdPage = async ({ params }: DayIdPageProps) => {
       </Link>
       
       <div className="mt-4">
-        <Suspense fallback={<DayBoardList.Skeleton />}>
-          <DayBoardList dayFolderId={dayId} />
-        </Suspense>
+        <DayBoardList boards={boards} dayFolderId={dayId} orgId={organizationId} />
       </div>
     </div>
   );

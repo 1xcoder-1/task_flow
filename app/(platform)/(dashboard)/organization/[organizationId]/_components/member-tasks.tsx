@@ -17,7 +17,9 @@ const isCardOverdue = (c: any) => {
   return new Date(c.dueDate) < new Date();
 };
 
-export const MemberTasksDashboard = () => {
+import { useMemo } from "react";
+
+export const MemberTasksDashboard = ({ initialData }: { initialData?: any[] | null }) => {
   const { organization, membership, isLoaded: isOrgLoaded } = useOrganization();
   const { user } = useUser();
 
@@ -31,24 +33,33 @@ export const MemberTasksDashboard = () => {
       if (res.error) throw new Error(res.error);
       return res.data || [];
     },
+    initialData: initialData || undefined,
     enabled: !!organization?.id && !!user?.id && !isAdmin,
-    staleTime: 0,
-    refetchInterval: 5_000,
+    staleTime: 60_000,
+    refetchInterval: 30_000,
     refetchOnWindowFocus: true,
   });
 
-  if (!isOrgLoaded) {
+  if (isOrgLoaded && isAdmin) {
     return null;
   }
 
-  // Admins do not see the Member Assigned Tasks section
-  if (isAdmin) {
-    return null;
-  }
+  const cards = cardsResponse || initialData || [];
 
-  const cards = cardsResponse || [];
+  const { pendingCards, completedCards, totalAssignedTasks, completionPercentage } = useMemo(() => {
+    const pending = cards.filter((c: any) => !isCardCompleted(c) && !isCardOverdue(c));
+    const completed = cards.filter((c: any) => isCardCompleted(c));
+    const total = cards.length;
+    const rate = total > 0 ? Math.round((completed.length / total) * 100) : 0;
+    return {
+      pendingCards: pending,
+      completedCards: completed,
+      totalAssignedTasks: total,
+      completionPercentage: rate,
+    };
+  }, [cards]);
 
-  if (isLoading) {
+  if (!cards.length && ((!isOrgLoaded && !initialData) || (isLoading && !initialData))) {
     return (
       <div className="mt-4 space-y-3">
         <Skeleton className="h-6 w-48 rounded-lg" />
@@ -61,15 +72,6 @@ export const MemberTasksDashboard = () => {
       </div>
     );
   }
-
-  const pendingCards = cards.filter((c) => !isCardCompleted(c) && !isCardOverdue(c));
-  const completedCards = cards.filter((c) => isCardCompleted(c));
-
-  const totalAssignedTasks = cards.length;
-  const completionPercentage =
-    totalAssignedTasks > 0
-      ? Math.round((completedCards.length / totalAssignedTasks) * 100)
-      : 0;
 
   return (
     <div className="mt-4 space-y-3">

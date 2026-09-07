@@ -1,6 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { unstable_cache } from "next/cache";
 import { Folder } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,25 +11,20 @@ interface DayFolderListProps {
   yearFolderId: string;
   organizationId: string;
   folderId: string;
+  dayFolders?: any[];
 }
 
-const getDayFolders = unstable_cache(
-  async (monthFolderId: string) => {
-    return (db.dayFolder as any).findMany({
-      where: { monthFolderId, isArchived: false },
-      orderBy: { createdAt: "desc" },
-    });
-  },
-  ["day-folders"],
-  { revalidate: 5, tags: ["folders"] }
-);
-
-export const DayFolderList = async ({ monthFolderId, yearFolderId, organizationId, folderId }: DayFolderListProps) => {
-  const { orgId } = await auth();
-
-  if (!orgId) return redirect("/select-org");
-
-  const dayFolders = await getDayFolders(monthFolderId);
+export const DayFolderList = async ({ monthFolderId, yearFolderId, organizationId, folderId, dayFolders: initialDayFolders }: DayFolderListProps) => {
+  const dayFolders = initialDayFolders || await db.dayFolder.findMany({
+    where: { monthFolderId, isArchived: false },
+    select: {
+      id: true,
+      title: true,
+      monthFolderId: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <div className="space-y-4">

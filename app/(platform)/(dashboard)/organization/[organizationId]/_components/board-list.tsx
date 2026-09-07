@@ -10,16 +10,29 @@ import { FolderOptionsModal } from "@/components/modals/folder-options-modal";
 import { db } from "@/lib/db";
 import { Folder as FolderModel } from "@prisma/client";
 
-export const BoardList = async () => {
-  const { orgId, orgRole } = await auth();
-  const isAdmin = orgRole === "org:admin";
+interface BoardListProps {
+  orgId: string;
+  isAdmin: boolean;
+}
 
+export const BoardList = async ({ orgId, isAdmin }: BoardListProps) => {
   if (!orgId) return redirect("/select-org");
 
   let folders = await (db.folder as any).findMany({
     where: {
       orgId,
       isArchived: false,
+    },
+    select: {
+      id: true,
+      orgId: true,
+      title: true,
+      logoUrl: true,
+      password: true,
+      createdAt: true,
+      updatedAt: true,
+      isArchived: true,
+      deletedAt: true,
     },
     orderBy: {
       createdAt: "desc",
@@ -29,13 +42,14 @@ export const BoardList = async () => {
   const impFolderExists = folders.some((f: any) => f.title === "Important");
 
   if (!impFolderExists) {
-    const { inngest } = await import("@/inngest/client");
-    await inngest.send({
-      name: "app/org.init",
-      data: { orgId }
-    });
-    // We do NOT wait for it to finish or add it to folders array immediately
-    // so the UI can load in real-time.
+    import("@/inngest/client")
+      .then(({ inngest }) => {
+        inngest.send({
+          name: "app/org.init",
+          data: { orgId },
+        }).catch((err) => console.error("Failed to send app/org.init event", err));
+      })
+      .catch((err) => console.error("Failed to load inngest client", err));
   }
 
   return (
@@ -48,20 +62,29 @@ export const BoardList = async () => {
           <div key={folder.id} className="group flex flex-col w-40">
             <Link
               href={`/organization/${orgId}/folder/${folder.id}`}
+              prefetch={true}
               className="w-full rounded-md hover:bg-black/5 p-1 pb-1 transition"
             >
-              <div
-                style={folder.logoUrl ? { backgroundImage: `url(${folder.logoUrl})` } : undefined}
-                className="relative aspect-square w-full bg-no-repeat bg-center bg-contain bg-amber-100 rounded-lg overflow-hidden flex items-center justify-center border border-amber-300 shadow-sm"
-              >
-                {!folder.logoUrl && (
-                  <Folder className="h-12 w-12 text-amber-500" fill="currentColor" />
+              <div className="relative aspect-square w-full bg-amber-100 rounded-lg overflow-hidden flex items-center justify-center border border-amber-300 shadow-sm">
+                {folder.logoUrl ? (
+                  <img
+                    src={folder.logoUrl}
+                    alt={folder.title}
+                    loading="lazy"
+                    decoding="async"
+                    width={160}
+                    height={160}
+                    className="h-full w-full object-contain p-2 transition-transform duration-150 group-hover:scale-105"
+                  />
+                ) : (
+                  <Folder className="h-12 w-12 text-amber-500 transition-transform duration-150 group-hover:scale-105" fill="currentColor" />
                 )}
               </div>
             </Link>
             <div className="flex items-center justify-between gap-x-2 pl-1 pr-0 pt-1 overflow-hidden w-full">
               <Link 
                 href={`/organization/${orgId}/folder/${folder.id}`} 
+                prefetch={true}
                 className="font-medium text-sm text-neutral-700 truncate hover:underline max-w-[75%] ml-1"
               >
                 {folder.title}
@@ -99,15 +122,13 @@ export const BoardList = async () => {
 
 BoardList.Skeleton = function SkeletonBoardList() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-4">
-      <Skeleton className="aspect-video h-full w-full p-2" />
-      <Skeleton className="aspect-video h-full w-full p-2" />
-      <Skeleton className="aspect-video h-full w-full p-2" />
-      <Skeleton className="aspect-video h-full w-full p-2" />
-      <Skeleton className="aspect-video h-full w-full p-2" />
-      <Skeleton className="aspect-video h-full w-full p-2" />
-      <Skeleton className="aspect-video h-full w-full p-2" />
-      <Skeleton className="aspect-video h-full w-full p-2" />
+    <div className="flex flex-wrap gap-3 -ml-2 p-1">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div key={index} className="flex flex-col w-40 space-y-2">
+          <Skeleton className="aspect-square w-full rounded-lg" />
+          <Skeleton className="h-4 w-28 ml-1" />
+        </div>
+      ))}
     </div>
   );
 };

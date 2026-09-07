@@ -85,3 +85,21 @@ export const prepareUploadFile = async (file: File) => {
     };
   }
 };
+
+export const compressLogoImage = async (file: File): Promise<string> => {
+  if (!file.type.startsWith("image/")) {
+    return "";
+  }
+
+  try {
+    // Ultra-lightweight logo compression: max 160px edge, quality 0.75 WebP
+    const compressed = await compressBitmap(file, 160, 0.75, "image/webp");
+    return await blobToDataUrl(compressed);
+  } catch {
+    try {
+      return await blobToDataUrl(file);
+    } catch {
+      return "";
+    }
+  }
+};

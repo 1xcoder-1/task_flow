@@ -1,6 +1,6 @@
 "use client";
 
-import { LiveblocksProvider } from "@liveblocks/react/suspense";
+import { LiveblocksProvider } from "@liveblocks/react";
 import { PropsWithChildren, useCallback } from "react";
 
 export const LiveblocksAppProvider = ({ children }: PropsWithChildren) => {

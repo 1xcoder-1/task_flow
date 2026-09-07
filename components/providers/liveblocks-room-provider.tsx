@@ -1,6 +1,6 @@
 "use client";
 
-import { RoomProvider } from "@liveblocks/react/suspense";
+import { RoomProvider } from "@liveblocks/react";
 import { PropsWithChildren } from "react";
 
 export const LiveblocksRoomProvider = ({

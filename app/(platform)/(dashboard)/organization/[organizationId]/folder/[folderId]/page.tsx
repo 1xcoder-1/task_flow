@@ -3,10 +3,8 @@ import Link from "next/link";
 import { ArrowLeft, User2 } from "lucide-react";
 
 import { db } from "@/lib/db";
-import { inngest } from "@/inngest/client";
 import { FolderAuthWrapper } from "./_components/folder-auth-wrapper";
 import { YearFolderList } from "./_components/year-folder-list";
-import { BoardCardOptionsModal } from "@/components/modals/board-card-options-modal";
 import { BoardLink } from "@/components/board-link";
 
 import { auth } from "@clerk/nextjs/server";
@@ -19,25 +17,47 @@ interface FolderIdPageProps {
 }
 
 const FolderIdPage = async ({ params }: FolderIdPageProps) => {
-  const [{ folderId, organizationId }, { orgRole, userId }] = await Promise.all([params, auth()]);
+  const { folderId, organizationId } = await params;
+  const [{ orgRole, userId }, folder, yearFolders, impBoard] = await Promise.all([
+    auth(),
+    db.folder.findUnique({
+      where: {
+        id: folderId,
+        orgId: organizationId,
+      },
+      select: {
+        id: true,
+        title: true,
+        password: true,
+        accesses: {
+          select: { userId: true },
+        },
+      },
+    }),
+    db.yearFolder.findMany({
+      where: { folderId, isArchived: false },
+      select: {
+        id: true,
+        title: true,
+        folderId: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    db.board.findFirst({
+      where: { orgId: organizationId, isImpBoard: true },
+      select: {
+        id: true,
+        title: true,
+        imageThumbUrl: true,
+      },
+    }),
+  ]);
   const isAdmin = orgRole === "org:admin";
-
-  const folder = await db.folder.findUnique({
-    where: {
-      id: folderId,
-      orgId: organizationId,
-    },
-    include: {
-      accesses: true,
-    }
-  });
 
   let impBoardContent = null;
 
-  if (folder?.title === "Important") {
-    const impBoard = await db.board.findFirst({
-      where: { orgId: organizationId, isImpBoard: true }
-    });
+  if (folder?.title === "Important" && impBoard) {
     
     if (impBoard) {
       impBoardContent = (
@@ -67,19 +87,8 @@ const FolderIdPage = async ({ params }: FolderIdPageProps) => {
       );
     }
   }
-  
-  if (folder && folder.title !== "Important") {
-    // Fire-and-forget: don't block page render waiting for Inngest
-    inngest.send({
-      name: "app/folder.init",
-      data: {
-        orgId: organizationId,
-        folderId: folder.id,
-      },
-    }).catch((e) => console.error("Inngest folder.init failed:", e));
-  }
-  const hasAccess = folder?.accesses.some((a) => a.userId === userId);
 
+  const hasAccess = Boolean(folder?.accesses && folder.accesses.some((a) => a.userId === userId));
   const hasPassword = !!folder?.password;
   let requiresPassword = hasPassword && !isAdmin && !hasAccess;
 
@@ -92,9 +101,7 @@ const FolderIdPage = async ({ params }: FolderIdPageProps) => {
       {folder?.title === "Important" ? (
         impBoardContent
       ) : (
-        <Suspense fallback={<YearFolderList.Skeleton />}>
-          <YearFolderList folderId={folderId} />
-        </Suspense>
+        <YearFolderList yearFolders={yearFolders} folderId={folderId} orgId={organizationId} />
       )}
     </div>
   );
@@ -111,11 +118,9 @@ const FolderIdPage = async ({ params }: FolderIdPageProps) => {
       </Link>
       
       {requiresPassword ? (
-        <Suspense fallback={content}>
-          <FolderAuthWrapper folderId={folderId}>
-            {content}
-          </FolderAuthWrapper>
-        </Suspense>
+        <FolderAuthWrapper folderId={folderId}>
+          {content}
+        </FolderAuthWrapper>
       ) : (
         content
       )}

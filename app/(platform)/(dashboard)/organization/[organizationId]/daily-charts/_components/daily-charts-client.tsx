@@ -65,6 +65,7 @@ interface CompareTrendItem {
 
 interface DailyChartsClientProps {
   organizationId: string;
+  initialData?: any;
 }
 
 // Client-only dynamic imports for Recharts components to eliminate SSR chunk errors
@@ -92,7 +93,7 @@ function localDateStr() {
   return `${y}-${m}-${day}`;
 }
 
-export const DailyChartsClient = ({ organizationId }: DailyChartsClientProps) => {
+export const DailyChartsClient = ({ organizationId, initialData }: DailyChartsClientProps) => {
   const queryClient = useQueryClient();
   const [range, setRange] = useState<ChartRange>("daily");
   const [selectedTargetUserId, setSelectedTargetUserId] = useState<string>("all");
@@ -120,6 +121,8 @@ export const DailyChartsClient = ({ organizationId }: DailyChartsClientProps) =>
     return () => window.clearTimeout(timer);
   }, [queryClient]);
 
+  const isDefaultView = range === "daily" && selectedTargetUserId === "all" && !isCompareMode;
+
   const { data, isLoading, isFetching, isError } = useQuery({
     queryKey: [
       "daily-activity",
@@ -144,9 +147,10 @@ export const DailyChartsClient = ({ organizationId }: DailyChartsClientProps) =>
       if (!json.success) throw new Error("Failed to load analytics");
       return json;
     },
-    enabled: hasMounted,
+    initialData: isDefaultView ? initialData : undefined,
+    enabled: hasMounted || !!initialData,
     placeholderData: keepPreviousData,
-    staleTime: 10_000,
+    staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
 
